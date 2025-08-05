@@ -7,10 +7,10 @@ import MusicApp from "./apps/MusicApp"
 import BrowserApp from "./apps/BrowserApp"
 import EmailApp from "./apps/EmailApp"
 import CalendarApp from "./apps/CalendarApp"
- //import TerminalApp from "./apps/TerminalApp"
- //import SettingsApp from "./apps/SettingsApp"
- //import CodeApp from "./apps/CodeApp"
- //import PhotosApp from "./apps/PhotosApp"
+import TerminalApp from "./apps/TerminalApp"
+import SettingsApp from "./apps/SettingsApp"
+import CodeApp from "./apps/CodeApp"
+import PhotosApp from "./apps/PhotosApp"
 import MailApp from "./apps/EmailApp"
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion"
@@ -216,6 +216,10 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
     },
     { id: "calendar", name: "Calendar", icon: Calendar, color: "from-red-500 to-red-600", component: CalendarApp },
     { id: "mail", name: "Mail", icon: Mail, color: "from-teal-500 to-teal-600", component: EmailApp },
+    { id: "terminal", name: "Terminal", icon: Terminal, color: "from-gray-500 to-gray-600", component: TerminalApp },
+    { id: "settings", name: "Settings", icon: Settings, color: "from-blue-400 to-blue-500", component: SettingsApp },
+    { id: "code", name: "Code", icon: Code, color: "from-purple-500 to-purple-600", component: CodeApp },
+    { id: "photos", name: "Photos", icon: ImageIcon, color: "from-cyan-500 to-cyan-600", component: PhotosApp },
   ]
 
   const dockApps = desktopApps.slice(0, 6)
@@ -415,6 +419,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
         setWindows(windows.map((w) => (w.id === existingWindow.id ? { ...w, minimized: false } : w)))
       }
       setActiveWindow(existingWindow.id)
+      setSearchOpen(false)
       return
     }
 
@@ -872,7 +877,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
           <div className="relative">
             <motion.button
               className="p-1 rounded-md hover:bg-white/10 relative"
-              whileHover={{ scale: 1.1, rotate: 5, boxShadow: getAdaptiveGlow("low") }}
+              whileHover={{ scale: 1.05, rotate: 5, boxShadow: getAdaptiveGlow("low") }}
               whileTap={{ scale: 0.9 }}
               transition={springConfig}
               onClick={toggleNotifications}
