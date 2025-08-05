@@ -25,10 +25,7 @@ import {
   Edit3,
   Star,
   MoreVertical,
-  Home,
-  Desktop,
-  HardDrive,
-  Network
+  Home
 } from "lucide-react"
 import { useAppStore, type FileEntry } from "@/app/lib/store"
 import { fileSystemService } from "@/app/lib/file-system"
@@ -278,7 +275,7 @@ export default function FileExplorerApp() {
                   <div className="flex-1">
                     <span className="text-white font-medium">{file.name}</span>
                     <div className="text-gray-400 text-xs">
-                      {file.size && `${file.size} • `}{file.modified}
+                      {file.size && `${file.size} • `}{file.modified.toLocaleDateString()}
                     </div>
                   </div>
                 </div>

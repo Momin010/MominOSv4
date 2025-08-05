@@ -196,7 +196,7 @@ export default function SettingsPanel() {
                                 min="0"
                                 max="100"
                                 value={settings.sound ? 70 : 0}
-                                onChange={(e) => handleSettingChange('sound', e.target.value > 0)}
+                                onChange={(e) => handleSettingChange('sound', parseInt(e.target.value) > 0)}
                                 className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
                               />
                             </div>

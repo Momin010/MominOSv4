@@ -203,7 +203,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     return responseList[Math.floor(Math.random() * responseList.length)]
   }
 
-  const generateAIResponse = (input: string): { content: string; actions?: Action[] } => {
+  const generateAIResponse = (input: string): { content: string; actions?: AIAction[] } => {
     const { intent, entities, confidence } = extractIntent(input)
     const normalizedInput = input.toLowerCase()
 
@@ -213,7 +213,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['calculator', 'calc'].includes(e)) || normalizedInput.match(/\b(math|calculate|compute|numbers)\b/)) {
         return {
           content: generateContextualResponse(input, 'open_app', entities, confidence) + " Opening Calculator for your mathematical needs!",
-          actions: [{ type: 'open_app', label: 'Open Calculator', value: 'calculator', icon: Calculator }]
+          actions: [{ type: 'open_app', label: 'Open Calculator', value: 'calculator', icon: '🧮' }]
         }
       }
       
@@ -221,7 +221,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['browser', 'chrome', 'web'].includes(e)) || normalizedInput.match(/\b(internet|surf|browse|web)\b/)) {
         return {
           content: "Launching your web browser! The internet awaits your exploration.",
-          actions: [{ type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }]
+          actions: [{ type: 'open_app', label: 'Open Browser', value: 'browser', icon: '🌐' }]
         }
       }
       
@@ -229,7 +229,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['calendar'].includes(e)) || normalizedInput.match(/\b(schedule|appointment|meeting|event|date)\b/)) {
         return {
           content: "Opening your Calendar to help you stay organized and on schedule!",
-          actions: [{ type: 'open_app', label: 'Open Calendar', value: 'calendar', icon: Calendar }]
+          actions: [{ type: 'open_app', label: 'Open Calendar', value: 'calendar', icon: '📅' }]
         }
       }
       
@@ -237,7 +237,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['mail', 'email'].includes(e)) || normalizedInput.match(/\b(message|inbox|compose|send)\b/)) {
         return {
           content: "Accessing your Mail application. Let's check those important messages!",
-          actions: [{ type: 'open_app', label: 'Open Mail', value: 'mail', icon: Mail }]
+          actions: [{ type: 'open_app', label: 'Open Mail', value: 'mail', icon: '📧' }]
         }
       }
       
@@ -245,7 +245,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['music', 'audio'].includes(e)) || normalizedInput.match(/\b(song|track|playlist|listen|sound)\b/)) {
         return {
           content: "Starting your Music player! Time to enjoy some great tunes.",
-          actions: [{ type: 'open_app', label: 'Open Music', value: 'music', icon: Music }]
+          actions: [{ type: 'open_app', label: 'Open Music', value: 'music', icon: '🎵' }]
         }
       }
       
@@ -253,7 +253,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['terminal', 'console'].includes(e)) || normalizedInput.match(/\b(command|cmd|bash|shell|cli)\b/)) {
         return {
           content: "Opening Terminal for advanced system access. Welcome to the command line!",
-          actions: [{ type: 'open_app', label: 'Open Terminal', value: 'terminal', icon: Terminal }]
+          actions: [{ type: 'open_app', label: 'Open Terminal', value: 'terminal', icon: '💻' }]
         }
       }
       
@@ -261,7 +261,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['code', 'editor'].includes(e)) || normalizedInput.match(/\b(programming|develop|script|coding|ide)\b/)) {
         return {
           content: "Launching Code Editor! Ready to create something amazing?",
-          actions: [{ type: 'open_app', label: 'Open Code', value: 'code', icon: Code }]
+          actions: [{ type: 'open_app', label: 'Open Code', value: 'code', icon: '📝' }]
         }
       }
       
@@ -269,7 +269,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['photos', 'images'].includes(e)) || normalizedInput.match(/\b(picture|gallery|photo|image|visual)\b/)) {
         return {
           content: "Opening Photos to browse your visual memories and images!",
-          actions: [{ type: 'open_app', label: 'Open Photos', value: 'photos', icon: Camera }]
+          actions: [{ type: 'open_app', label: 'Open Photos', value: 'photos', icon: '📸' }]
         }
       }
       
@@ -277,7 +277,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['files', 'explorer'].includes(e)) || normalizedInput.match(/\b(folder|directory|document|file|explore)\b/)) {
         return {
           content: "Opening File Explorer to navigate your digital storage!",
-          actions: [{ type: 'open_app', label: 'Open Files', value: 'files', icon: FileText }]
+          actions: [{ type: 'open_app', label: 'Open Files', value: 'files', icon: '📄' }]
         }
       }
       
@@ -285,7 +285,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       if (entities.some(e => ['settings', 'preferences'].includes(e)) || normalizedInput.match(/\b(configure|customize|setup|options|control)\b/)) {
         return {
           content: "Opening Settings to personalize your MominOS experience!",
-          actions: [{ type: 'open_app', label: 'Open Settings', value: 'settings', icon: Settings }]
+          actions: [{ type: 'open_app', label: 'Open Settings', value: 'settings', icon: '⚙️' }]
         }
       }
     }
@@ -297,8 +297,8 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
         return {
           content: `I'll search for "${searchTerm}" across the web using multiple sources to give you comprehensive results!`,
           actions: [
-            { type: 'open_url', label: `Search: ${searchTerm}`, value: `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, icon: Search },
-            { type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }
+            { type: 'open_url', label: `Search: ${searchTerm}`, value: `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, icon: '🔍' },
+            { type: 'open_app', label: 'Open Browser', value: 'browser', icon: '🌐' }
           ]
         }
       }
@@ -308,14 +308,14 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     if (entities.includes('youtube') || normalizedInput.match(/\b(video|watch|youtube)\b/)) {
       return {
         content: "Taking you to YouTube! Discover endless entertainment and educational content.",
-        actions: [{ type: 'open_url', label: 'Open YouTube', value: 'https://www.youtube.com', icon: Globe }]
+        actions: [{ type: 'open_url', label: 'Open YouTube', value: 'https://www.youtube.com', icon: '🌐' }]
       }
     }
 
     if (entities.includes('github') || normalizedInput.match(/\b(repository|repo|github|code)\b/)) {
       return {
         content: "Navigating to GitHub! The world's largest community of developers awaits.",
-        actions: [{ type: 'open_url', label: 'Open GitHub', value: 'https://www.github.com', icon: Globe }]
+        actions: [{ type: 'open_url', label: 'Open GitHub', value: 'https://www.github.com', icon: '🌐' }]
       }
     }
 
@@ -334,7 +334,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     if (normalizedInput.match(/\b(weather|temperature|forecast)\b/)) {
       return {
         content: "I'd love to get you the latest weather information! Let me connect you to a reliable weather service.",
-        actions: [{ type: 'open_url', label: 'Check Weather', value: 'https://weather.com', icon: Globe }]
+        actions: [{ type: 'open_url', label: 'Check Weather', value: 'https://weather.com', icon: '🌐' }]
       }
     }
 
@@ -343,8 +343,8 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       return {
         content: generateContextualResponse(input, 'help', entities, confidence) + "\n\n🚀 I can:\n• Understand natural language commands\n• Open any application instantly\n• Browse and search the web intelligently\n• Provide system information\n• Learn your preferences over time\n• Execute complex workflows\n• Assist with productivity tasks\n\nJust speak naturally - I'll understand and adapt!",
         actions: [
-          { type: 'open_app', label: 'Explore Apps', value: 'launcher', icon: Sparkles },
-          { type: 'open_app', label: 'System Settings', value: 'settings', icon: Settings }
+          { type: 'open_app', label: 'Explore Apps', value: 'launcher', icon: '✨' },
+          { type: 'open_app', label: 'System Settings', value: 'settings', icon: '⚙️' }
         ]
       }
     }
@@ -373,14 +373,14 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     return {
       content: `${contextualDefault} Based on "${input}", I believe you might want to explore these options:`,
       actions: [
-        { type: 'open_url', label: `Search: ${input}`, value: `https://www.google.com/search?q=${encodeURIComponent(input)}`, icon: Search },
-        { type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe },
-        { type: 'open_app', label: 'System Help', value: 'settings', icon: Settings }
+        { type: 'open_url', label: `Search: ${input}`, value: `https://www.google.com/search?q=${encodeURIComponent(input)}`, icon: '🔍' },
+        { type: 'open_app', label: 'Open Browser', value: 'browser', icon: '🌐' },
+        { type: 'open_app', label: 'System Help', value: 'settings', icon: '⚙️' }
       ]
     }
   }
 
-  const executeAction = (action: Action) => {
+  const executeAction = (action: AIAction) => {
     switch (action.type) {
       case 'open_app':
         onOpenApp(action.value)
