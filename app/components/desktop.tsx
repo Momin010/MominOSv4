@@ -702,7 +702,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
       <motion.div
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/public /lataus (2).jpg')",
+          backgroundImage: "url('/lataus (2).jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
