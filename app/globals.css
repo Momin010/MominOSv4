@@ -154,9 +154,7 @@
   }
 
   .glass-window {
-    @apply backdrop-blur-3xl border rounded-3xl;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    @apply bg-white/[0.08] backdrop-blur-3xl border border-white/20 rounded-3xl;
     box-shadow: 
       0 32px 80px -12px rgba(0, 0, 0, 0.3),
       inset 0 2px 6px rgba(255, 255, 255, 0.2),

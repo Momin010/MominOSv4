@@ -12,6 +12,7 @@ import SettingsApp from "./apps/SettingsApp"
 import CodeApp from "./apps/CodeApp"
 import PhotosApp from "./apps/PhotosApp"
 import MailApp from "./apps/EmailApp"
+import AIAssistant from "./ai-assistant"
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion"
 import { Input } from "@/components/ui/input"
@@ -153,6 +154,10 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
   const [showBatteryMenu, setShowBatteryMenu] = useState(false)
   const [notifications, setNotifications] = useState(mockNotifications)
   const [unreadNotifications, setUnreadNotifications] = useState(mockNotifications.filter((n) => !n.read).length)
+  
+  // AI Assistant state
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
+  const [aiAssistantPosition, setAiAssistantPosition] = useState({ x: 100, y: 100 })
 
   const dragRef = useRef<{ windowId: string; startX: number; startY: number } | null>(null)
   const dockRef = useRef<HTMLDivElement>(null)
@@ -190,6 +195,39 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // AI Assistant keyboard shortcut (Ctrl/Cmd + Space)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+        e.preventDefault()
+        setAiAssistantPosition({ 
+          x: window.innerWidth / 2 - 200, 
+          y: window.innerHeight / 2 - 250 
+        })
+        setShowAIAssistant(true)
+      }
+    }
+
+    const handleDoubleClick = (e: MouseEvent) => {
+      // Only trigger on desktop double-click (not on windows or dock)
+      if ((e.target as HTMLElement).closest('.glass-window, .glass-dock, .glass-topbar')) return
+      
+      setAiAssistantPosition({ 
+        x: e.clientX - 200, 
+        y: e.clientY - 250 
+      })
+      setShowAIAssistant(true)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('dblclick', handleDoubleClick)
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('dblclick', handleDoubleClick)
+    }
   }, [])
 
   // Simulate battery drain - with proper cleanup
@@ -412,8 +450,17 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
     setActiveWindow(windowId)
   }
 
-  const openApp = (app: App) => {
-    const existingWindow = windows.find((w) => w.title === app.name)
+  const openApp = (app: App | string) => {
+    // Handle string input from AI assistant
+    let targetApp: App | undefined
+    if (typeof app === 'string') {
+      targetApp = desktopApps.find(a => a.id === app)
+      if (!targetApp) return
+    } else {
+      targetApp = app
+    }
+
+    const existingWindow = windows.find((w) => w.title === targetApp.name)
     if (existingWindow) {
       if (existingWindow.minimized) {
         setWindows(windows.map((w) => (w.id === existingWindow.id ? { ...w, minimized: false } : w)))
@@ -425,15 +472,15 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
 
     const newWindow: Window = {
       id: `window-${Date.now()}`,
-      title: app.name,
-      icon: app.icon,
+      title: targetApp.name,
+      icon: targetApp.icon,
       x: Math.random() * 200 + 100,
       y: Math.random() * 200 + 100,
       width: 900,
       height: 700,
       minimized: false,
       maximized: false,
-      component: app.component!,
+      component: targetApp.component!,
       snapped: null,
       isResizing: false,
     }
@@ -834,9 +881,14 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
             whileTap={{ scale: 0.95 }}
             transition={bouncySpring}
             onClick={() => setSearchOpen(true)}
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              setAiAssistantPosition({ x: 20, y: 60 })
+              setShowAIAssistant(true)
+            }}
           >
             <motion.div
-              className="w-6 h-6 bg-gradient-to-br from-purple-500 to-green-400 rounded-md flex items-center justify-center"
+              className="w-6 h-6 bg-gradient-to-br from-purple-500 to-green-400 rounded-md flex items-center justify-center relative"
               whileHover={{
                 scale: 1.1,
                 rotate: 5,
@@ -845,6 +897,19 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
               transition={springConfig}
             >
               <Terminal className="w-3 h-3 text-white" />
+              {/* AI indicator */}
+              <motion.div
+                className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full"
+                animate={{ 
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.2, 0.8]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
             </motion.div>
             <motion.span
               className="text-white font-medium text-sm"
@@ -1320,6 +1385,44 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
           className="trash-icon"
         />
       </motion.div>
+
+      {/* AI Assistant Discovery Hint */}
+      <AnimatePresence>
+        {!showAIAssistant && windows.length === 0 && (
+          <motion.div
+            className="absolute bottom-32 left-1/2 transform -translate-x-1/2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ ...springConfig, delay: 3 }}
+          >
+            <motion.div
+              className="bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-6 py-4 text-center"
+              animate={{ 
+                y: [0, -5, 0],
+                opacity: [0.7, 1, 0.7]
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <p className="text-white/90 text-sm mb-2">
+                <span className="font-semibold">Double-click</span> anywhere or press <span className="font-mono bg-white/20 px-2 py-1 rounded">Ctrl+Space</span>
+              </p>
+              <p className="text-cyan-400 text-xs font-medium flex items-center justify-center gap-1">
+                <motion.div
+                  className="w-1.5 h-1.5 bg-cyan-400 rounded-full"
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                />
+                to summon your AI assistant
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Enhanced App Launcher with working search */}
       <AnimatePresence>
@@ -1802,6 +1905,14 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI Assistant */}
+      <AIAssistant
+        isOpen={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        onOpenApp={openApp}
+        position={aiAssistantPosition}
+      />
 
       {/* Click outside handlers */}
       <AnimatePresence>
