@@ -77,7 +77,9 @@
 /* Ultra-Glossy Apple-Style Summer Glassmorphism */
 @layer components {
   .glass {
-    @apply bg-white/15 backdrop-blur-3xl border border-white/30;
+    @apply backdrop-blur-3xl border;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.15),
       inset 0 2px 4px rgba(255, 255, 255, 0.3),
@@ -86,7 +88,9 @@
   }
 
   .glass-dark {
-    @apply bg-white/8 backdrop-blur-3xl border border-white/20;
+    @apply backdrop-blur-3xl border;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.25),
       inset 0 2px 4px rgba(255, 255, 255, 0.2),
@@ -95,7 +99,9 @@
   }
 
   .glass-card {
-    @apply bg-white/10 backdrop-blur-3xl border border-white/20 rounded-3xl;
+    @apply backdrop-blur-3xl border rounded-3xl;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
       0 25px 50px -12px rgba(0, 0, 0, 0.25),
       inset 0 2px 6px rgba(255, 255, 255, 0.25),
@@ -104,7 +110,9 @@
   }
 
   .glass-button {
-    @apply bg-white/15 backdrop-blur-2xl border border-white/30 rounded-2xl;
+    @apply backdrop-blur-2xl border rounded-2xl;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 
       0 8px 24px rgba(0, 0, 0, 0.15),
       inset 0 2px 4px rgba(255, 255, 255, 0.3),
@@ -114,7 +122,8 @@
   }
 
   .glass-button:hover {
-    @apply bg-white/25 border-white/40;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 
       0 12px 36px rgba(0, 0, 0, 0.2),
       inset 0 3px 6px rgba(255, 255, 255, 0.4),
@@ -124,7 +133,9 @@
   }
 
   .glass-input {
-    @apply bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl;
+    @apply backdrop-blur-2xl border rounded-2xl;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
       0 6px 20px rgba(0, 0, 0, 0.1),
       inset 0 2px 4px rgba(255, 255, 255, 0.2),
@@ -133,7 +144,8 @@
   }
 
   .glass-input:focus {
-    @apply border-white/40 bg-white/15;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.15),
       inset 0 2px 6px rgba(255, 255, 255, 0.3),
@@ -142,7 +154,9 @@
   }
 
   .glass-window {
-    @apply bg-white/8 backdrop-blur-3xl border border-white/20 rounded-3xl;
+    @apply backdrop-blur-3xl border rounded-3xl;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
       0 32px 80px -12px rgba(0, 0, 0, 0.3),
       inset 0 2px 6px rgba(255, 255, 255, 0.2),
@@ -151,7 +165,9 @@
   }
 
   .glass-dock {
-    @apply bg-white/12 backdrop-blur-3xl border border-white/25 rounded-3xl;
+    @apply backdrop-blur-3xl border rounded-3xl;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
     box-shadow: 
       0 40px 100px -12px rgba(0, 0, 0, 0.4),
       inset 0 3px 8px rgba(255, 255, 255, 0.25),
@@ -160,7 +176,9 @@
   }
 
   .glass-topbar {
-    @apply bg-white/10 backdrop-blur-3xl border-b border-white/15;
+    @apply backdrop-blur-3xl border-b;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 
       0 4px 32px rgba(0, 0, 0, 0.2),
       inset 0 2px 4px rgba(255, 255, 255, 0.2),
@@ -169,7 +187,9 @@
   }
 
   .glass-menu {
-    @apply bg-white/12 backdrop-blur-3xl border border-white/25 rounded-3xl;
+    @apply backdrop-blur-3xl border rounded-3xl;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
     box-shadow: 
       0 25px 50px -12px rgba(0, 0, 0, 0.3),
       inset 0 2px 6px rgba(255, 255, 255, 0.25),
@@ -178,7 +198,9 @@
   }
 
   .glass-notification {
-    @apply bg-white/15 backdrop-blur-2xl border border-white/25 rounded-2xl;
+    @apply backdrop-blur-2xl border rounded-2xl;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
     box-shadow: 
       0 16px 40px rgba(0, 0, 0, 0.2),
       inset 0 2px 4px rgba(255, 255, 255, 0.3),
@@ -187,7 +209,9 @@
   }
 
   .glass-icon {
-    @apply bg-white/15 backdrop-blur-2xl border border-white/30 rounded-2xl;
+    @apply backdrop-blur-2xl border rounded-2xl;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 
       0 8px 24px rgba(0, 0, 0, 0.15),
       inset 0 2px 4px rgba(255, 255, 255, 0.3),
@@ -197,7 +221,8 @@
   }
 
   .glass-icon:hover {
-    @apply bg-white/25 border-white/40;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 
       0 12px 36px rgba(0, 0, 0, 0.2),
       inset 0 3px 6px rgba(255, 255, 255, 0.4),
