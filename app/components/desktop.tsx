@@ -698,12 +698,12 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
-      {/* Background with subtle parallax */}
+      {/* Tropical Beach Background with subtle parallax */}
       <motion.div
-        className="absolute inset-0 bg-gray-900"
+        className="absolute inset-0"
         style={{
-          backgroundImage: "url('/wallpaper.jpg')",
-          backgroundSize: "110%",
+          backgroundImage: "url('/attached_assets/Beach Desktop Wallpapers Free Download_1754397091534.jpg')",
+          backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
           x: parallaxX,
@@ -711,32 +711,50 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
         }}
       />
 
-      {/* Enhanced glass overlay */}
+      {/* Summer Glass Overlay */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-black/20 via-purple-900/10 to-black/20"
+        className="absolute inset-0 glass-summer-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.2 }}
       />
+      
+      {/* Tropical Light Reflections */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-cyan-300/10 via-transparent to-blue-300/5"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5, delay: 0.4 }}
+      />
 
-      {/* Glass particles effect */}
+      {/* Tropical Glass Particles */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(15)].map((_, i) => (
+        {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-2 h-2 bg-white/10 rounded-full backdrop-blur-sm"
+            className="absolute rounded-full backdrop-blur-sm"
             style={{
+              width: `${Math.random() * 8 + 4}px`,
+              height: `${Math.random() * 8 + 4}px`,
+              background: `radial-gradient(circle, ${
+                Math.random() > 0.5 
+                  ? 'rgba(0, 255, 255, 0.3)' 
+                  : 'rgba(255, 255, 255, 0.2)'
+              } 0%, transparent 70%)`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
             }}
             animate={{
-              y: [0, -20, 0],
-              opacity: [0.3, 0.8, 0.3],
+              y: [0, -30, 0],
+              x: [0, Math.random() * 20 - 10, 0],
+              opacity: [0.2, 0.8, 0.2],
+              scale: [0.8, 1.2, 0.8],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: 4 + Math.random() * 3,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: Math.random() * 3,
+              ease: "easeInOut",
             }}
           />
         ))}
@@ -1463,12 +1481,12 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
                   </>
                 )}
 
-                {/* Window Title Bar */}
+                {/* Window Title Bar - Ultra Minimal Bezel */}
                 <motion.div
-                  className="flex items-center justify-between p-3 border-b border-white/10 cursor-move bg-gradient-to-r from-transparent to-white/5 rounded-t-xl"
+                  className="flex items-center justify-between px-2 py-1 border-b border-white/10 cursor-move bg-gradient-to-r from-transparent to-white/5 rounded-t-xl"
                   whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
                   transition={{ duration: 0.2 }}
-                >
+                ></motion.div>
                   <div className="flex items-center gap-2">
                     <motion.div whileHover={{ scale: 1.1, rotate: 5 }} transition={springConfig}>
                       <Icon className="w-4 h-4 text-purple-400" />
@@ -1488,36 +1506,36 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
                   <div className="flex items-center gap-1 window-controls">
                     <motion.button
                       onClick={() => minimizeWindow(window.id)}
-                      className="w-6 h-6 rounded-full bg-yellow-500/20 hover:bg-yellow-500/40 flex items-center justify-center"
+                      className="w-4 h-4 rounded-full bg-yellow-500/20 hover:bg-yellow-500/40 flex items-center justify-center"
                       whileHover={{ scale: 1.2, boxShadow: getAdaptiveGlow("medium") }}
                       whileTap={{ scale: 0.9 }}
                       transition={springConfig}
                     >
-                      <Minimize2 className="w-3 h-3 text-yellow-400" />
+                      <Minimize2 className="w-2 h-2 text-yellow-400" />
                     </motion.button>
                     <motion.button
                       onClick={() => maximizeWindow(window.id)}
-                      className="w-6 h-6 rounded-full bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center"
+                      className="w-4 h-4 rounded-full bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center"
                       whileHover={{ scale: 1.2, boxShadow: getAdaptiveGlow("medium") }}
                       whileTap={{ scale: 0.9 }}
                       transition={springConfig}
                     >
-                      <Maximize2 className="w-3 h-3 text-green-400" />
+                      <Maximize2 className="w-2 h-2 text-green-400" />
                     </motion.button>
                     <motion.button
                       onClick={() => closeWindow(window.id)}
-                      className="w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center"
+                      className="w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center"
                       whileHover={{ scale: 1.2, boxShadow: getAdaptiveGlow("medium") }}
                       whileTap={{ scale: 0.9 }}
                       transition={springConfig}
                     >
-                      <X className="w-3 h-3 text-red-400" />
+                      <X className="w-2 h-2 text-red-400" />
                     </motion.button>
                   </div>
                 </motion.div>
 
                 {/* Window Content */}
-                <div className="h-[calc(100%-49px)] overflow-hidden">
+                <div className="h-[calc(100%-29px)] overflow-hidden"></div>
                   {WindowComponent ? (
                     <WindowComponent />
                   ) : (
