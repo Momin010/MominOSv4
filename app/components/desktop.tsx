@@ -13,10 +13,13 @@ import CodeApp from "./apps/CodeApp"
 import PhotosApp from "./apps/PhotosApp"
 import MailApp from "./apps/EmailApp"
 import AIAssistant from "./ai-assistant"
+import NotificationSystem from "./notification-system"
+import GlobalSearch from "./global-search"
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAppStore } from "@/app/lib/store"
 import {
   Search,
   Grid3X3,

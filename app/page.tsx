@@ -5,10 +5,14 @@ import LoginScreen from "./components/login-screen"
 import Desktop from "./components/desktop"
 import { UserIcon } from "lucide-react"
 import { type User } from "./lib/auth"
+import { useAppStore } from "./lib/store"
+import GlobalSearch from "./components/global-search"
+import NotificationSystem from "./components/notification-system"
+import SettingsPanel from "./components/settings-panel"
+import FeatureDemo from "./components/feature-demo"
 
 export default function MominOS() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const { user, isLoggedIn, setUser, setLoggedIn } = useAppStore()
   const [isBooting, setIsBooting] = useState(true)
 
   // Simulate boot sequence
@@ -21,13 +25,13 @@ export default function MominOS() {
   }, [])
 
   const handleLogin = (user: User) => {
-    setCurrentUser(user)
-    setIsLoggedIn(true)
+    setUser(user)
+    setLoggedIn(true)
   }
 
   const handleLogout = () => {
-    setIsLoggedIn(false)
-    setCurrentUser(null)
+    setLoggedIn(false)
+    setUser(null)
   }
 
   if (isBooting) {
@@ -38,7 +42,20 @@ export default function MominOS() {
     return <LoginScreen onLogin={handleLogin} />
   }
 
-  return <Desktop user={currentUser} onLogout={handleLogout} />
+  return (
+    <div className="relative">
+      <Desktop user={user} onLogout={handleLogout} />
+      {/* Add global search, notification system, and settings */}
+      <div className="fixed top-4 left-4 z-50">
+        <GlobalSearch />
+      </div>
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        <SettingsPanel />
+        <NotificationSystem />
+      </div>
+      <FeatureDemo />
+    </div>
+  )
 }
 
 function BootScreen() {
