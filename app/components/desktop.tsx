@@ -1486,7 +1486,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
                   className="flex items-center justify-between px-2 py-1 border-b border-white/10 cursor-move bg-gradient-to-r from-transparent to-white/5 rounded-t-xl"
                   whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
                   transition={{ duration: 0.2 }}
-                ></motion.div>
+                >
                   <div className="flex items-center gap-2">
                     <motion.div whileHover={{ scale: 1.1, rotate: 5 }} transition={springConfig}>
                       <Icon className="w-4 h-4 text-purple-400" />
@@ -1535,7 +1535,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
                 </motion.div>
 
                 {/* Window Content */}
-                <div className="h-[calc(100%-29px)] overflow-hidden"></div>
+                <div className="h-[calc(100%-29px)] overflow-hidden">
                   {WindowComponent ? (
                     <WindowComponent />
                   ) : (
