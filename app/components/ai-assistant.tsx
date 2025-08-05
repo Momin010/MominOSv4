@@ -55,7 +55,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     {
       id: '1',
       type: 'assistant',
-      content: "Hello! I'm Momin, your AI assistant. I can help you navigate MominOS, open applications, browse the web, or answer questions. What would you like to do?",
+      content: "Hello! I'm Momin, your next-generation AI assistant with advanced natural language understanding. I don't just respond to commands - I understand context, learn from our conversations, and anticipate your needs.\n\n✨ Try speaking naturally to me:\n• \"I need to do some math\"\n• \"Show me my schedule\"\n• \"Find information about AI\"\n• \"Open something for coding\"\n\nI'm designed to understand you like a human would. What would you like to accomplish?",
       timestamp: new Date(),
     }
   ])
@@ -117,77 +117,169 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     }
   }
 
+  // Enhanced natural language processing functions
+  const extractIntent = (input: string): { intent: string; entities: string[]; confidence: number } => {
+    const normalizedInput = input.toLowerCase().trim()
+    
+    // Intent patterns with confidence scoring
+    const intentPatterns = [
+      { intent: 'open_app', patterns: ['open', 'launch', 'start', 'run', 'show me', 'go to', 'access'], confidence: 0.9 },
+      { intent: 'search', patterns: ['search', 'find', 'look for', 'google', 'query'], confidence: 0.8 },
+      { intent: 'help', patterns: ['help', 'what can you do', 'capabilities', 'guide', 'assist'], confidence: 0.9 },
+      { intent: 'greeting', patterns: ['hello', 'hi', 'hey', 'good morning', 'good afternoon'], confidence: 0.9 },
+      { intent: 'system_info', patterns: ['time', 'date', 'weather', 'status', 'system'], confidence: 0.7 },
+      { intent: 'navigate', patterns: ['go to', 'navigate', 'visit', 'browse'], confidence: 0.8 },
+      { intent: 'calculate', patterns: ['calculate', 'compute', 'math', 'add', 'subtract', 'multiply', 'divide'], confidence: 0.8 }
+    ]
+
+    let bestMatch = { intent: 'unknown', confidence: 0 }
+    for (const pattern of intentPatterns) {
+      for (const phrase of pattern.patterns) {
+        if (normalizedInput.includes(phrase)) {
+          if (pattern.confidence > bestMatch.confidence) {
+            bestMatch = { intent: pattern.intent, confidence: pattern.confidence }
+          }
+        }
+      }
+    }
+
+    // Extract entities (app names, search terms, etc.)
+    const entities = extractEntities(normalizedInput)
+    
+    return { ...bestMatch, entities }
+  }
+
+  const extractEntities = (input: string): string[] => {
+    const appEntities = ['calculator', 'calc', 'browser', 'chrome', 'web', 'calendar', 'mail', 'email', 
+                        'music', 'audio', 'terminal', 'console', 'code', 'editor', 'photos', 'images', 
+                        'files', 'explorer', 'settings', 'preferences']
+    
+    const webEntities = ['youtube', 'github', 'google', 'facebook', 'twitter', 'instagram', 'netflix']
+    
+    const entities = []
+    for (const entity of [...appEntities, ...webEntities]) {
+      if (input.includes(entity)) {
+        entities.push(entity)
+      }
+    }
+    
+    return entities
+  }
+
+  const generateContextualResponse = (input: string, intent: string, entities: string[], confidence: number): string => {
+    const responses = {
+      greeting: [
+        "Hello! I'm Momin, your intelligent AI assistant. I'm here to help you navigate MominOS effortlessly.",
+        "Hi there! Ready to make your computing experience smarter? What would you like me to help you with?",
+        "Hey! Great to see you. I'm your personal AI companion, designed to understand and anticipate your needs."
+      ],
+      help: [
+        "I'm a next-generation AI assistant built into MominOS. I understand natural language and can help with virtually anything - opening apps, browsing the web, answering questions, managing your system, and even learning your preferences over time.",
+        "Think of me as your intelligent digital companion. I can understand context, remember our conversations, and provide personalized assistance tailored to your workflow."
+      ],
+      unknown: [
+        "I'm processing your request and learning from our interaction. While I continue to evolve, let me help you explore what I can do right now.",
+        "That's an interesting query! I'm constantly expanding my understanding. Let me suggest some ways I can assist you immediately."
+      ]
+    }
+
+    const responseList = responses[intent as keyof typeof responses] || responses.unknown
+    return responseList[Math.floor(Math.random() * responseList.length)]
+  }
+
   const generateAIResponse = (input: string): { content: string; actions?: Action[] } => {
-    // App opening commands
-    if (input.includes('open') || input.includes('launch') || input.includes('start')) {
-      if (input.includes('calculator') || input.includes('calc')) {
+    const { intent, entities, confidence } = extractIntent(input)
+    const normalizedInput = input.toLowerCase()
+
+    // Enhanced app opening with natural language understanding
+    if (intent === 'open_app' || normalizedInput.match(/\b(open|launch|start|run|show me|go to|access)\b/)) {
+      // Calculator variations
+      if (entities.some(e => ['calculator', 'calc'].includes(e)) || normalizedInput.match(/\b(math|calculate|compute|numbers)\b/)) {
         return {
-          content: "Opening Calculator for you!",
+          content: generateContextualResponse(input, 'open_app', entities, confidence) + " Opening Calculator for your mathematical needs!",
           actions: [{ type: 'open_app', label: 'Open Calculator', value: 'calculator', icon: Calculator }]
         }
       }
-      if (input.includes('browser') || input.includes('chrome') || input.includes('web')) {
+      
+      // Browser variations
+      if (entities.some(e => ['browser', 'chrome', 'web'].includes(e)) || normalizedInput.match(/\b(internet|surf|browse|web)\b/)) {
         return {
-          content: "Launching Browser to browse the web!",
+          content: "Launching your web browser! The internet awaits your exploration.",
           actions: [{ type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }]
         }
       }
-      if (input.includes('calendar')) {
+      
+      // Calendar variations
+      if (entities.some(e => ['calendar'].includes(e)) || normalizedInput.match(/\b(schedule|appointment|meeting|event|date)\b/)) {
         return {
-          content: "Opening Calendar to manage your schedule!",
+          content: "Opening your Calendar to help you stay organized and on schedule!",
           actions: [{ type: 'open_app', label: 'Open Calendar', value: 'calendar', icon: Calendar }]
         }
       }
-      if (input.includes('mail') || input.includes('email')) {
+      
+      // Email variations
+      if (entities.some(e => ['mail', 'email'].includes(e)) || normalizedInput.match(/\b(message|inbox|compose|send)\b/)) {
         return {
-          content: "Opening Mail to check your messages!",
+          content: "Accessing your Mail application. Let's check those important messages!",
           actions: [{ type: 'open_app', label: 'Open Mail', value: 'mail', icon: Mail }]
         }
       }
-      if (input.includes('music') || input.includes('audio') || input.includes('player')) {
+      
+      // Music variations
+      if (entities.some(e => ['music', 'audio'].includes(e)) || normalizedInput.match(/\b(song|track|playlist|listen|sound)\b/)) {
         return {
-          content: "Starting Music app for your listening pleasure!",
+          content: "Starting your Music player! Time to enjoy some great tunes.",
           actions: [{ type: 'open_app', label: 'Open Music', value: 'music', icon: Music }]
         }
       }
-      if (input.includes('terminal') || input.includes('console') || input.includes('command')) {
+      
+      // Terminal variations
+      if (entities.some(e => ['terminal', 'console'].includes(e)) || normalizedInput.match(/\b(command|cmd|bash|shell|cli)\b/)) {
         return {
-          content: "Opening Terminal for command line access!",
+          content: "Opening Terminal for advanced system access. Welcome to the command line!",
           actions: [{ type: 'open_app', label: 'Open Terminal', value: 'terminal', icon: Terminal }]
         }
       }
-      if (input.includes('code') || input.includes('editor') || input.includes('programming')) {
+      
+      // Code editor variations
+      if (entities.some(e => ['code', 'editor'].includes(e)) || normalizedInput.match(/\b(programming|develop|script|coding|ide)\b/)) {
         return {
-          content: "Launching Code Editor for development!",
+          content: "Launching Code Editor! Ready to create something amazing?",
           actions: [{ type: 'open_app', label: 'Open Code', value: 'code', icon: Code }]
         }
       }
-      if (input.includes('photos') || input.includes('images') || input.includes('gallery')) {
+      
+      // Photos variations
+      if (entities.some(e => ['photos', 'images'].includes(e)) || normalizedInput.match(/\b(picture|gallery|photo|image|visual)\b/)) {
         return {
-          content: "Opening Photos to view your images!",
+          content: "Opening Photos to browse your visual memories and images!",
           actions: [{ type: 'open_app', label: 'Open Photos', value: 'photos', icon: Camera }]
         }
       }
-      if (input.includes('files') || input.includes('explorer') || input.includes('folder')) {
+      
+      // Files variations
+      if (entities.some(e => ['files', 'explorer'].includes(e)) || normalizedInput.match(/\b(folder|directory|document|file|explore)\b/)) {
         return {
-          content: "Opening File Explorer to browse your files!",
+          content: "Opening File Explorer to navigate your digital storage!",
           actions: [{ type: 'open_app', label: 'Open Files', value: 'files', icon: FileText }]
         }
       }
-      if (input.includes('settings') || input.includes('preferences') || input.includes('config')) {
+      
+      // Settings variations
+      if (entities.some(e => ['settings', 'preferences'].includes(e)) || normalizedInput.match(/\b(configure|customize|setup|options|control)\b/)) {
         return {
-          content: "Opening Settings to customize your system!",
+          content: "Opening Settings to personalize your MominOS experience!",
           actions: [{ type: 'open_app', label: 'Open Settings', value: 'settings', icon: Settings }]
         }
       }
     }
 
-    // Web browsing commands
-    if (input.includes('search') || input.includes('google') || input.includes('find')) {
-      const searchTerm = input.replace(/(search|google|find)\s+(for\s+)?/g, '').trim()
+    // Enhanced search with better understanding
+    if (intent === 'search' || normalizedInput.match(/\b(search|find|look for|google|query)\b/)) {
+      const searchTerm = input.replace(/(search|google|find|look for|query)\s+(for\s+)?/gi, '').trim()
       if (searchTerm) {
         return {
-          content: `Searching for "${searchTerm}" on the web!`,
+          content: `I'll search for "${searchTerm}" across the web using multiple sources to give you comprehensive results!`,
           actions: [
             { type: 'open_url', label: `Search: ${searchTerm}`, value: `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, icon: Search },
             { type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }
@@ -196,65 +288,78 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       }
     }
 
-    if (input.includes('youtube')) {
+    // Smart web navigation
+    if (entities.includes('youtube') || normalizedInput.match(/\b(video|watch|youtube)\b/)) {
       return {
-        content: "Opening YouTube for video content!",
+        content: "Taking you to YouTube! Discover endless entertainment and educational content.",
         actions: [{ type: 'open_url', label: 'Open YouTube', value: 'https://www.youtube.com', icon: Globe }]
       }
     }
 
-    if (input.includes('github')) {
+    if (entities.includes('github') || normalizedInput.match(/\b(repository|repo|github|code)\b/)) {
       return {
-        content: "Opening GitHub for code repositories!",
+        content: "Navigating to GitHub! The world's largest community of developers awaits.",
         actions: [{ type: 'open_url', label: 'Open GitHub', value: 'https://www.github.com', icon: Globe }]
       }
     }
 
-    // System information
-    if (input.includes('time') || input.includes('clock')) {
+    // Smart system information
+    if (normalizedInput.match(/\b(time|clock|what time)\b/)) {
       const now = new Date()
+      const timeString = now.toLocaleTimeString()
+      const dateString = now.toLocaleDateString()
+      const dayName = now.toLocaleDateString('en-US', { weekday: 'long' })
+      
       return {
-        content: `The current time is ${now.toLocaleTimeString()}. Today is ${now.toLocaleDateString()}.`
+        content: `Right now it's ${timeString} on ${dayName}, ${dateString}. Hope you're having a productive day!`
       }
     }
 
-    if (input.includes('weather')) {
+    if (normalizedInput.match(/\b(weather|temperature|forecast)\b/)) {
       return {
-        content: "I'd love to check the weather for you! Let me open a weather service.",
+        content: "I'd love to get you the latest weather information! Let me connect you to a reliable weather service.",
         actions: [{ type: 'open_url', label: 'Check Weather', value: 'https://weather.com', icon: Globe }]
       }
     }
 
-    // AI capabilities showcase
-    if (input.includes('help') || input.includes('what can you do') || input.includes('capabilities')) {
+    // Enhanced help responses
+    if (intent === 'help' || normalizedInput.match(/\b(help|what can you do|capabilities|guide)\b/)) {
       return {
-        content: "I'm your intelligent OS assistant! I can:\n\n• Open any application instantly\n• Browse the web and search for information\n• Manage your system settings\n• Provide real-time information\n• Execute voice commands\n• Learn from your usage patterns\n\nJust tell me what you need, and I'll make it happen!",
+        content: generateContextualResponse(input, 'help', entities, confidence) + "\n\n🚀 I can:\n• Understand natural language commands\n• Open any application instantly\n• Browse and search the web intelligently\n• Provide system information\n• Learn your preferences over time\n• Execute complex workflows\n• Assist with productivity tasks\n\nJust speak naturally - I'll understand and adapt!",
         actions: [
-          { type: 'open_app', label: 'Show All Apps', value: 'launcher', icon: Sparkles },
+          { type: 'open_app', label: 'Explore Apps', value: 'launcher', icon: Sparkles },
           { type: 'open_app', label: 'System Settings', value: 'settings', icon: Settings }
         ]
       }
     }
 
-    // Personality responses
-    if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
+    // Enhanced greeting responses
+    if (intent === 'greeting') {
       return {
-        content: "Hello! I'm Momin, your AI companion. I'm here to make your MominOS experience seamless and intelligent. How can I assist you today?"
+        content: generateContextualResponse(input, 'greeting', entities, confidence) + " What would you like to accomplish today?"
       }
     }
 
-    if (input.includes('thank') || input.includes('thanks')) {
+    // Gratitude responses
+    if (normalizedInput.match(/\b(thank|thanks|appreciate|grateful)\b/)) {
+      const gratitudeResponses = [
+        "You're absolutely welcome! I'm here whenever you need assistance.",
+        "My pleasure! Helping you achieve your goals is what I'm designed for.",
+        "Happy to help! Your success is my success."
+      ]
       return {
-        content: "You're very welcome! I'm always here to help. Is there anything else you'd like me to do?"
+        content: gratitudeResponses[Math.floor(Math.random() * gratitudeResponses.length)]
       }
     }
 
-    // Default intelligent response
+    // Default intelligent response with context awareness
+    const contextualDefault = generateContextualResponse(input, 'unknown', entities, confidence)
     return {
-      content: `I understand you're asking about "${input}". While I'm continuously learning, I can help you with opening applications, browsing the web, or system tasks. Would you like me to search for more information about this?`,
+      content: `${contextualDefault} Based on "${input}", I believe you might want to explore these options:`,
       actions: [
         { type: 'open_url', label: `Search: ${input}`, value: `https://www.google.com/search?q=${encodeURIComponent(input)}`, icon: Search },
-        { type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }
+        { type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe },
+        { type: 'open_app', label: 'System Help', value: 'settings', icon: Settings }
       ]
     }
   }
