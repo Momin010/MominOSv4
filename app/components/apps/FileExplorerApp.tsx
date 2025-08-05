@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { 
   Folder, 
@@ -19,53 +19,46 @@ import {
   Clipboard,
   Search,
   Grid,
-  List
+  List,
+  Upload,
+  Download,
+  Edit3,
+  Star,
+  MoreVertical,
+  Home,
+  Desktop,
+  HardDrive,
+  Network
 } from "lucide-react"
-
-interface FileItem {
-  id: string
-  name: string
-  type: 'file' | 'folder'
-  size?: string
-  modified: string
-  icon: any
-  path: string
-}
+import { useAppStore, type FileEntry } from "@/app/lib/store"
+import { fileSystemService } from "@/app/lib/file-system"
 
 export default function FileExplorerApp() {
-  console.log("🔥 REAL FileExplorerApp rendered")
-  const [currentPath, setCurrentPath] = useState("/")
+  const { currentPath, files, setCurrentPath, addFile, removeFile, updateFile } = useAppStore()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearch, setShowSearch] = useState(false)
+  const [showNewFileDialog, setShowNewFileDialog] = useState(false)
+  const [newFileName, setNewFileName] = useState("")
+  const [newFileType, setNewFileType] = useState<'file' | 'folder'>('file')
 
-  // Mock file system
-  const mockFiles: FileItem[] = [
-    { id: '1', name: 'Documents', type: 'folder', modified: '2024-01-15', icon: Folder, path: '/Documents' },
-    { id: '2', name: 'Pictures', type: 'folder', modified: '2024-01-14', icon: Folder, path: '/Pictures' },
-    { id: '3', name: 'Music', type: 'folder', modified: '2024-01-13', icon: Folder, path: '/Music' },
-    { id: '4', name: 'report.pdf', type: 'file', size: '2.3 MB', modified: '2024-01-12', icon: FileText, path: '/report.pdf' },
-    { id: '5', name: 'photo.jpg', type: 'file', size: '1.8 MB', modified: '2024-01-11', icon: Image, path: '/photo.jpg' },
-    { id: '6', name: 'song.mp3', type: 'file', size: '4.2 MB', modified: '2024-01-10', icon: Music, path: '/song.mp3' },
-    { id: '7', name: 'video.mp4', type: 'file', size: '15.7 MB', modified: '2024-01-09', icon: Video, path: '/video.mp4' },
-    { id: '8', name: 'archive.zip', type: 'file', size: '8.1 MB', modified: '2024-01-08', icon: Archive, path: '/archive.zip' },
-  ]
-
-  const filteredFiles = mockFiles.filter(file => 
+  // Get files in current path
+  const filesInCurrentPath = files.filter(file => file.path === currentPath)
+  
+  const filteredFiles = filesInCurrentPath.filter(file => 
     file.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const getFileIcon = (file: FileItem) => {
-    const Icon = file.icon
-    return <Icon className="w-6 h-6" />
+  const getFileIcon = (file: FileEntry) => {
+    return <span className="text-2xl">{file.icon}</span>
   }
 
-  const handleFileClick = (file: FileItem) => {
+  const handleFileClick = (file: FileEntry) => {
     if (file.type === 'folder') {
-      setCurrentPath(file.path)
+      setCurrentPath(file.path + '/' + file.name)
     } else {
-      // Handle file opening
+      // Handle file opening - could open in appropriate app
       console.log(`Opening file: ${file.name}`)
     }
   }
@@ -78,15 +71,46 @@ export default function FileExplorerApp() {
     )
   }
 
-  const getFileTypeColor = (file: FileItem) => {
+  const handleCreateFile = () => {
+    if (newFileName.trim()) {
+      if (newFileType === 'file') {
+        fileSystemService.createFile(newFileName, '', currentPath)
+      } else {
+        fileSystemService.createFolder(newFileName, currentPath)
+      }
+      setNewFileName("")
+      setShowNewFileDialog(false)
+    }
+  }
+
+  const handleDeleteFile = (fileId: string) => {
+    fileSystemService.deleteFile(fileId)
+    setSelectedItems(prev => prev.filter(id => id !== fileId))
+  }
+
+  const handleUploadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (files) {
+      Array.from(files).forEach(file => {
+        fileSystemService.uploadFile(file, currentPath)
+      })
+    }
+  }
+
+  const handleDownloadFile = (fileId: string) => {
+    fileSystemService.downloadFile(fileId)
+  }
+
+  const getFileTypeColor = (file: FileEntry) => {
     switch (file.type) {
       case 'folder': return 'text-blue-400'
       case 'file':
-        if (file.name.endsWith('.pdf')) return 'text-red-400'
-        if (file.name.endsWith('.jpg') || file.name.endsWith('.png')) return 'text-green-400'
-        if (file.name.endsWith('.mp3')) return 'text-purple-400'
-        if (file.name.endsWith('.mp4')) return 'text-orange-400'
-        if (file.name.endsWith('.zip')) return 'text-yellow-400'
+        const extension = file.name.split('.').pop()?.toLowerCase()
+        if (extension === 'pdf') return 'text-red-400'
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension || '')) return 'text-green-400'
+        if (['mp3', 'wav', 'flac', 'aac'].includes(extension || '')) return 'text-purple-400'
+        if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) return 'text-orange-400'
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension || '')) return 'text-yellow-400'
         return 'text-gray-400'
       default: return 'text-gray-400'
     }

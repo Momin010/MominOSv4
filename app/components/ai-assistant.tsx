@@ -27,20 +27,15 @@ import {
   Camera,
   FileText
 } from "lucide-react"
+import { aiService, type AIMessage, type AIAction } from "@/app/lib/ai-service"
+import { useAppStore } from "@/app/lib/store"
 
 interface Message {
   id: string
   type: 'user' | 'assistant'
   content: string
   timestamp: Date
-  actions?: Action[]
-}
-
-interface Action {
-  type: 'open_app' | 'open_url' | 'search' | 'system_command'
-  label: string
-  value: string
-  icon?: any
+  actions?: AIAction[]
 }
 
 interface AIAssistantProps {
@@ -51,15 +46,8 @@ interface AIAssistantProps {
 }
 
 export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AIAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: "Hello! I'm Momin, your next-generation AI assistant with advanced natural language understanding. I don't just respond to commands - I understand context, learn from our conversations, and anticipate your needs.\n\n✨ Try speaking naturally to me:\n• \"I need to do some math\"\n• \"Show me my schedule\"\n• \"Find information about AI\"\n• \"Open something for coding\"\n\nI'm designed to understand you like a human would. What would you like to accomplish?",
-      timestamp: new Date(),
-    }
-  ])
-  const [inputValue, setInputValue] = useState("")
+  const { aiMessages, addAIMessage } = useAppStore()
+  const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -68,6 +56,20 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Initialize with welcome message if no messages
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: '1',
+        type: 'assistant',
+        content: "Hello! I'm Momin, your next-generation AI assistant with advanced natural language understanding. I don't just respond to commands - I understand context, learn from our conversations, and anticipate your needs.\n\n✨ Try speaking naturally to me:\n• \"I need to do some math\"\n• \"Show me my schedule\"\n• \"Find information about AI\"\n• \"Open something for coding\"\n\nI'm designed to understand you like a human would. What would you like to accomplish?",
+        timestamp: new Date(),
+      }
+      setMessages([welcomeMessage])
+    }
+  }, [])
+  const [inputValue, setInputValue] = useState("")
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -95,25 +97,39 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     setInputValue("")
     setIsTyping(true)
 
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
+    try {
+      // Use real AI service
+      const aiResponse = await aiService.sendMessage(input)
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: aiResponse.content,
+        timestamp: new Date(),
+        actions: aiResponse.actions
+      }
 
-    const response = generateAIResponse(input.toLowerCase())
-    
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: response.content,
-      timestamp: new Date(),
-      actions: response.actions
-    }
-
-    setMessages(prev => [...prev, assistantMessage])
-    setIsTyping(false)
-
-    // Auto-speak response if enabled
-    if (isSpeaking) {
-      speakText(response.content)
+      setMessages(prev => [...prev, assistantMessage])
+      
+      // Execute actions if any
+      if (aiResponse.actions) {
+        for (const action of aiResponse.actions) {
+          await aiService.executeAction(action)
+        }
+      }
+    } catch (error) {
+      console.error('AI processing error:', error)
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsTyping(false)
     }
   }
 
@@ -379,19 +395,23 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
   }
 
   const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 0.8
-      utterance.pitch = 1.1
-      utterance.volume = 0.8
-      window.speechSynthesis.speak(utterance)
-    }
+    aiService.speakText(text)
   }
 
-  const toggleListening = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      setIsListening(!isListening)
-      // Voice recognition implementation would go here
+  const toggleListening = async () => {
+    if (isListening) {
+      setIsListening(false)
+    } else {
+      setIsListening(true)
+      try {
+        const transcript = await aiService.startVoiceRecognition()
+        setInputValue(transcript)
+        await processUserInput(transcript)
+      } catch (error) {
+        console.error('Voice recognition error:', error)
+      } finally {
+        setIsListening(false)
+      }
     }
   }
 
