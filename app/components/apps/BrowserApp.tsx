@@ -244,79 +244,81 @@ export default function BrowserApp() {
     }
   }
 
-  const NewTabPage = () => (
-    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-light text-gray-800 dark:text-gray-200 mb-4">
-            New Tab
-          </h1>
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search or type URL"
-              className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  const url = (e.target as HTMLInputElement).value
-                  if (activeTab) {
-                    navigateTab(activeTab.id, url)
+  const NewTabPage = () => {
+    return (
+      <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-light text-gray-800 dark:text-gray-200 mb-4">
+              New Tab
+            </h1>
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search or type URL"
+                className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const url = (e.target as HTMLInputElement).value
+                    if (activeTab) {
+                      navigateTab(activeTab.id, url)
+                    }
                   }
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-          {bookmarks.slice(0, 8).map(bookmark => (
-            <motion.div
-              key={bookmark.id}
-              className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
-              onClick={() => activeTab && navigateTab(activeTab.id, bookmark.url)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="text-2xl mb-2">{bookmark.icon}</div>
-              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                {bookmark.title}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {history.length > 0 && (
-          <div>
-            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
-              Recently Visited
-            </h2>
-            <div className="grid gap-2">
-              {history.slice(0, 5).map(item => (
-                <motion.div
-                  key={item.id}
-                  className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                  onClick={() => activeTab && navigateTab(activeTab.id, item.url)}
-                  whileHover={{ x: 4 }}
-                >
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                      {item.title}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">{item.url}</div>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {new Date(item.timestamp).toLocaleDateString()}
-                  </div>
-                </motion.div>
-              ))}
+                }}
+              />
             </div>
           </div>
-        )}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            {bookmarks.slice(0, 8).map(bookmark => (
+              <motion.div
+                key={bookmark.id}
+                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
+                onClick={() => activeTab && navigateTab(activeTab.id, bookmark.url)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="text-2xl mb-2">{bookmark.icon}</div>
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                  {bookmark.title}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {history.length > 0 && (
+            <div>
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                Recently Visited
+              </h2>
+              <div className="grid gap-2">
+                {history.slice(0, 5).map(item => (
+                  <motion.div
+                    key={item.id}
+                    className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => activeTab && navigateTab(activeTab.id, item.url)}
+                    whileHover={{ x: 4 }}
+                  >
+                    <Globe className="w-4 h-4 text-gray-400" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                        {item.title}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">{item.url}</div>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(item.timestamp).toLocaleDateString()}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="h-full bg-white dark:bg-gray-900 flex flex-col">
