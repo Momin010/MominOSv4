@@ -15,6 +15,7 @@ export default function CalculatorApp() {
 
   // Handle number input
   const inputNumber = (num: string) => {
+    console.log("Number clicked:", num);  // Debugging line
     if (waitingForOperand) {
       setDisplay(num);
       setWaitingForOperand(false);
@@ -25,6 +26,7 @@ export default function CalculatorApp() {
 
   // Handle decimal point input
   const inputDecimal = () => {
+    console.log("Decimal clicked");  // Debugging line
     if (waitingForOperand) {
       setDisplay("0.");
       setWaitingForOperand(false);
@@ -35,6 +37,7 @@ export default function CalculatorApp() {
 
   // Handle operations (e.g., +, -, ×, ÷)
   const inputOperation = (nextOperation: string) => {
+    console.log("Operation clicked:", nextOperation);  // Debugging line
     const inputValue = parseFloat(display);
 
     if (previousValue === null) {
@@ -73,6 +76,7 @@ export default function CalculatorApp() {
 
   // Final calculation after clicking '='
   const performCalculation = () => {
+    console.log("Performing calculation...");  // Debugging line
     const inputValue = parseFloat(display);
 
     if (previousValue !== null && operation) {
@@ -88,6 +92,7 @@ export default function CalculatorApp() {
 
   // Clear all values
   const clear = () => {
+    console.log("Clearing values...");  // Debugging line
     setDisplay("0");
     setPreviousValue(null);
     setOperation(null);
@@ -113,6 +118,7 @@ export default function CalculatorApp() {
 
   // Handle scientific functions like sin, cos, log, etc.
   const scientificFunction = (func: string) => {
+    console.log("Scientific function:", func);  // Debugging line
     const value = parseFloat(display);
     let result = 0;
 
