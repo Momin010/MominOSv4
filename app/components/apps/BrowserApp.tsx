@@ -110,11 +110,25 @@ export default function BrowserApp() {
   const navigateTab = (tabId: string, url: string) => {
     const normalizedUrl = normalizeUrl(url)
     
-    setTabs(prev => prev.map(tab => 
-      tab.id === tabId 
-        ? { ...tab, url: normalizedUrl, isLoading: true, title: 'Loading...' }
-        : tab
-    ))
+    // Check if this is a commonly blocked site
+    if (isBlockedSite(normalizedUrl)) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === tabId 
+          ? { 
+              ...tab, 
+              url: `iframe-blocked-${normalizedUrl}`, 
+              isLoading: false, 
+              title: 'Blocked Content' 
+            }
+          : tab
+      ))
+    } else {
+      setTabs(prev => prev.map(tab => 
+        tab.id === tabId 
+          ? { ...tab, url: normalizedUrl, isLoading: true, title: 'Loading...' }
+          : tab
+      ))
+    }
 
     if (tabId === activeTabId) {
       setUrlInput(normalizedUrl)
@@ -190,6 +204,16 @@ export default function BrowserApp() {
     }
   }
 
+  // List of sites that commonly block iframe embedding
+  const blockedSites = [
+    'youtube.com', 'google.com', 'facebook.com', 'twitter.com', 'x.com',
+    'instagram.com', 'linkedin.com', 'netflix.com', 'amazon.com', 'github.com'
+  ]
+
+  const isBlockedSite = (url: string): boolean => {
+    return blockedSites.some(site => url.toLowerCase().includes(site))
+  }
+
   const handleIframeLoad = (tabId: string) => {
     setTabs(prev => prev.map(tab => 
       tab.id === tabId ? { ...tab, isLoading: false } : tab
@@ -204,7 +228,19 @@ export default function BrowserApp() {
         ))
       } catch (e) {
         // Cross-origin restrictions
+        console.log('Cross-origin restrictions prevent access to iframe content')
       }
+    }
+  }
+
+  const handleIframeError = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab && isBlockedSite(tab.url)) {
+      setTabs(prev => prev.map(t => 
+        t.id === tabId 
+          ? { ...t, url: `iframe-blocked-${t.url}`, title: 'Blocked Content', isLoading: false }
+          : t
+      ))
     }
   }
 
@@ -428,9 +464,35 @@ export default function BrowserApp() {
                 src={tab.url}
                 className="w-full h-full border-0"
                 onLoad={() => handleIframeLoad(tab.id)}
+                onError={() => handleIframeError(tab.id)}
                 sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
                 title={`Tab ${tab.id}`}
+                style={{ display: tab.url.includes('iframe-blocked') ? 'none' : 'block' }}
               />
+              
+              {/* Show blocked content message */}
+              {tab.url.includes('iframe-blocked') && (
+                <div className="h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                  <div className="text-center p-8 max-w-md">
+                    <Globe className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                      Can't display this page
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      This website cannot be displayed in a frame due to security restrictions.
+                    </p>
+                    <motion.button
+                      onClick={() => window.open(tab.url.replace('iframe-blocked-', ''), '_blank')}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Open in new tab
+                    </motion.button>
+                  </div>
+                </div>
+              )}
             )}
           </div>
         ))}
