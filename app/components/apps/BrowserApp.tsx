@@ -1,7 +1,8 @@
+
 "use client"
 
-import { useState, useRef } from "react"
-import { motion } from "framer-motion"
+import { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -13,7 +14,16 @@ import {
   Settings,
   ExternalLink,
   Lock,
-  Globe
+  Globe,
+  Star,
+  Download,
+  Shield,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Plus,
+  X,
+  Menu
 } from "lucide-react"
 
 interface Bookmark {
@@ -21,244 +31,419 @@ interface Bookmark {
   title: string
   url: string
   icon: string
+  favicon?: string
+}
+
+interface Tab {
+  id: string
+  title: string
+  url: string
+  favicon?: string
+  isActive: boolean
+  isLoading: boolean
+}
+
+interface HistoryItem {
+  id: string
+  url: string
+  title: string
+  timestamp: number
+  favicon?: string
 }
 
 export default function BrowserApp() {
-  const [currentUrl, setCurrentUrl] = useState("https://www.google.com")
-  const [urlInput, setUrlInput] = useState("https://www.google.com")
-  const [isLoading, setIsLoading] = useState(false)
+  const [tabs, setTabs] = useState<Tab[]>([
+    { id: '1', title: 'New Tab', url: 'about:newtab', isActive: true, isLoading: false }
+  ])
+  const [activeTabId, setActiveTabId] = useState('1')
+  const [urlInput, setUrlInput] = useState("")
+  const [isPrivate, setIsPrivate] = useState(false)
   const [showBookmarks, setShowBookmarks] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([
-    { id: '1', title: 'Google', url: 'https://www.google.com', icon: '🔍' },
-    { id: '2', title: 'GitHub', url: 'https://github.com', icon: '🐙' },
+    { id: '1', title: 'Google', url: 'https://www.google.com', icon: '🔍', favicon: 'https://www.google.com/favicon.ico' },
+    { id: '2', title: 'GitHub', url: 'https://github.com', icon: '🐙', favicon: 'https://github.com/favicon.ico' },
     { id: '3', title: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '📚' },
     { id: '4', title: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: '📖' },
+    { id: '5', title: 'YouTube', url: 'https://www.youtube.com', icon: '📺' },
+    { id: '6', title: 'Reddit', url: 'https://www.reddit.com', icon: '🔗' },
   ])
-  const [history, setHistory] = useState<string[]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+  
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [downloads, setDownloads] = useState<any[]>([])
+  const [showDevTools, setShowDevTools] = useState(false)
 
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const activeTab = tabs.find(tab => tab.id === activeTabId)
+  const webviewRefs = useRef<{ [key: string]: HTMLIFrameElement | null }>({})
 
-  const handleNavigate = (url: string) => {
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`
-    setCurrentUrl(fullUrl)
-    setUrlInput(fullUrl)
-    setIsLoading(true)
+  const createNewTab = (url = 'about:newtab') => {
+    const newTab: Tab = {
+      id: Date.now().toString(),
+      title: 'New Tab',
+      url,
+      isActive: true,
+      isLoading: url !== 'about:newtab'
+    }
     
-    // Add to history
-    const newHistory = [...history.slice(0, historyIndex + 1), fullUrl]
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
+    setTabs(prev => prev.map(t => ({ ...t, isActive: false })).concat(newTab))
+    setActiveTabId(newTab.id)
+    setUrlInput(url === 'about:newtab' ? '' : url)
   }
 
-  const handleGoBack = () => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1
-      setHistoryIndex(newIndex)
-      const url = history[newIndex]
-      setCurrentUrl(url)
-      setUrlInput(url)
+  const closeTab = (tabId: string) => {
+    const tabIndex = tabs.findIndex(tab => tab.id === tabId)
+    const newTabs = tabs.filter(tab => tab.id !== tabId)
+    
+    if (newTabs.length === 0) {
+      createNewTab()
+      return
+    }
+    
+    setTabs(newTabs)
+    
+    if (activeTabId === tabId) {
+      const newActiveIndex = Math.max(0, tabIndex - 1)
+      setActiveTabId(newTabs[newActiveIndex].id)
     }
   }
 
-  const handleGoForward = () => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1
-      setHistoryIndex(newIndex)
-      const url = history[newIndex]
-      setCurrentUrl(url)
-      setUrlInput(url)
+  const navigateTab = (tabId: string, url: string) => {
+    const normalizedUrl = normalizeUrl(url)
+    
+    setTabs(prev => prev.map(tab => 
+      tab.id === tabId 
+        ? { ...tab, url: normalizedUrl, isLoading: true, title: 'Loading...' }
+        : tab
+    ))
+
+    if (tabId === activeTabId) {
+      setUrlInput(normalizedUrl)
+    }
+
+    // Add to history
+    const historyItem: HistoryItem = {
+      id: Date.now().toString(),
+      url: normalizedUrl,
+      title: url,
+      timestamp: Date.now()
+    }
+    setHistory(prev => [historyItem, ...prev].slice(0, 100))
+  }
+
+  const normalizeUrl = (url: string): string => {
+    if (url.startsWith('about:')) return url
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.includes('.') && !url.includes(' ')) {
+        return `https://${url}`
+      } else {
+        return `https://www.google.com/search?q=${encodeURIComponent(url)}`
+      }
+    }
+    return url
+  }
+
+  const handleUrlSubmit = () => {
+    if (activeTab) {
+      navigateTab(activeTab.id, urlInput)
+    }
+  }
+
+  const handleBack = () => {
+    if (activeTab) {
+      const webview = webviewRefs.current[activeTab.id]
+      if (webview && webview.contentWindow) {
+        webview.contentWindow.history.back()
+      }
+    }
+  }
+
+  const handleForward = () => {
+    if (activeTab) {
+      const webview = webviewRefs.current[activeTab.id]
+      if (webview && webview.contentWindow) {
+        webview.contentWindow.history.forward()
+      }
     }
   }
 
   const handleRefresh = () => {
-    setIsLoading(true)
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src
+    if (activeTab) {
+      const webview = webviewRefs.current[activeTab.id]
+      if (webview) {
+        webview.src = webview.src
+        setTabs(prev => prev.map(tab => 
+          tab.id === activeTab.id ? { ...tab, isLoading: true } : tab
+        ))
+      }
     }
   }
 
   const handleBookmarkAdd = () => {
-    const newBookmark: Bookmark = {
-      id: Date.now().toString(),
-      title: currentUrl.split('/')[2] || 'New Bookmark',
-      url: currentUrl,
-      icon: '🔖'
+    if (activeTab && activeTab.url !== 'about:newtab') {
+      const newBookmark: Bookmark = {
+        id: Date.now().toString(),
+        title: activeTab.title || 'New Bookmark',
+        url: activeTab.url,
+        icon: '🔖'
+      }
+      setBookmarks(prev => [...prev, newBookmark])
     }
-    setBookmarks([...bookmarks, newBookmark])
   }
 
-  const handleBookmarkRemove = (id: string) => {
-    setBookmarks(bookmarks.filter(bookmark => bookmark.id !== id))
+  const handleIframeLoad = (tabId: string) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === tabId ? { ...tab, isLoading: false } : tab
+    ))
+
+    const webview = webviewRefs.current[tabId]
+    if (webview && webview.contentDocument) {
+      try {
+        const title = webview.contentDocument.title || 'Untitled'
+        setTabs(prev => prev.map(tab => 
+          tab.id === tabId ? { ...tab, title } : tab
+        ))
+      } catch (e) {
+        // Cross-origin restrictions
+      }
+    }
   }
 
-  const handleIframeLoad = () => {
-    setIsLoading(false)
-  }
+  const NewTabPage = () => (
+    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-light text-gray-800 dark:text-gray-200 mb-4">
+            New Tab
+          </h1>
+          <div className="relative max-w-md mx-auto">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search or type URL"
+              className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  const url = (e.target as HTMLInputElement).value
+                  if (activeTab) {
+                    navigateTab(activeTab.id, url)
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
 
-  const handleIframeError = () => {
-    setIsLoading(false)
-    // Handle error - maybe show a custom error page
-  }
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+          {bookmarks.slice(0, 8).map(bookmark => (
+            <motion.div
+              key={bookmark.id}
+              className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
+              onClick={() => activeTab && navigateTab(activeTab.id, bookmark.url)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="text-2xl mb-2">{bookmark.icon}</div>
+              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                {bookmark.title}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {history.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+              Recently Visited
+            </h2>
+            <div className="grid gap-2">
+              {history.slice(0, 5).map(item => (
+                <motion.div
+                  key={item.id}
+                  className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                  onClick={() => activeTab && navigateTab(activeTab.id, item.url)}
+                  whileHover={{ x: 4 }}
+                >
+                  <Globe className="w-4 h-4 text-gray-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                      {item.title}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">{item.url}</div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {new Date(item.timestamp).toLocaleDateString()}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
-    <div className="h-full bg-black/20 backdrop-blur-xl flex flex-col">
-      {/* Header */}
-      <div className="glass-topbar p-4 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <motion.button
-            onClick={handleGoBack}
-            disabled={historyIndex <= 0}
-            className="glass-button p-2 disabled:opacity-50"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+    <div className="h-full bg-white dark:bg-gray-900 flex flex-col">
+      {/* Tab Bar */}
+      <div className="flex items-center bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center flex-1 min-w-0">
+          {tabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`flex items-center gap-2 px-4 py-2 border-r border-gray-200 dark:border-gray-600 min-w-0 max-w-[200px] cursor-pointer ${
+                tab.isActive ? 'bg-white dark:bg-gray-900' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => setActiveTabId(tab.id)}
+            >
+              <div className="w-4 h-4 flex-shrink-0">
+                {tab.isLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                ) : (
+                  <Globe className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+              <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
+                {tab.title}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  closeTab(tab.id)
+                }}
+                className="w-4 h-4 flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => createNewTab()}
+            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
           >
-            <ArrowLeft className="w-4 h-4 text-white" />
-          </motion.button>
-          <motion.button
-            onClick={handleGoForward}
-            disabled={historyIndex >= history.length - 1}
-            className="glass-button p-2 disabled:opacity-50"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <ArrowRight className="w-4 h-4 text-white" />
-          </motion.button>
-          <motion.button
-            onClick={handleRefresh}
-            className="glass-button p-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <RefreshCw className={`w-4 h-4 text-white ${isLoading ? 'animate-spin' : ''}`} />
-          </motion.button>
-          <motion.button
-            onClick={() => handleNavigate("https://www.google.com")}
-            className="glass-button p-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Home className="w-4 h-4 text-white" />
-          </motion.button>
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Address Bar */}
-      <div className="p-4 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 flex-1">
-            <Lock className="w-4 h-4 text-green-400" />
+      {/* Navigation Bar */}
+      <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleBack}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleForward}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          >
+            <RefreshCw className={`w-4 h-4 ${activeTab?.isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => createNewTab()}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          >
+            <Home className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+            <Lock className="w-4 h-4 text-green-500 flex-shrink-0" />
             <input
               type="text"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleNavigate(urlInput)
-                }
-              }}
-              className="glass-input flex-1 text-white placeholder-gray-400"
+              onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
               placeholder="Search or enter address"
+              className="flex-1 bg-transparent text-gray-800 dark:text-gray-200 text-sm focus:outline-none"
             />
           </div>
-          <motion.button
-            onClick={() => handleNavigate(urlInput)}
-            className="glass-button px-4 py-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Search className="w-4 h-4 text-white" />
-          </motion.button>
-          <motion.button
-            onClick={handleBookmarkAdd}
-            className="glass-button p-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <BookmarkPlus className="w-4 h-4 text-white" />
-          </motion.button>
-          <motion.button
+
+          <button
             onClick={() => setShowBookmarks(!showBookmarks)}
-            className="glass-button p-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
           >
-            <Bookmark className="w-4 h-4 text-white" />
-          </motion.button>
+            <Star className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleBookmarkAdd}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          >
+            <BookmarkPlus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsPrivate(!isPrivate)}
+            className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ${
+              isPrivate ? 'text-purple-600 dark:text-purple-400' : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            {isPrivate ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
       {/* Bookmarks Bar */}
-      {showBookmarks && (
-        <motion.div
-          className="p-4 border-b border-white/10"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            {bookmarks.map((bookmark) => (
-              <motion.div
+      <AnimatePresence>
+        {showBookmarks && (
+          <motion.div
+            className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            {bookmarks.map(bookmark => (
+              <button
                 key={bookmark.id}
-                className="glass-card px-3 py-2 cursor-pointer flex items-center gap-2"
-                onClick={() => handleNavigate(bookmark.url)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                onClick={() => activeTab && navigateTab(activeTab.id, bookmark.url)}
+                className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-sm whitespace-nowrap"
               >
-                <span className="text-lg">{bookmark.icon}</span>
-                <span className="text-white text-sm">{bookmark.title}</span>
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleBookmarkRemove(bookmark.id)
-                  }}
-                  className="text-red-400 hover:text-red-300"
-                  whileHover={{ scale: 1.1 }}
-                >
-                  ×
-                </motion.button>
-              </motion.div>
+                <span>{bookmark.icon}</span>
+                <span className="text-gray-700 dark:text-gray-300">{bookmark.title}</span>
+              </button>
             ))}
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Browser Content */}
+      {/* Content Area */}
       <div className="flex-1 relative">
-        {isLoading && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10">
-            <motion.div
-              className="glass-card p-6 text-center"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <RefreshCw className="w-8 h-8 text-white animate-spin mx-auto mb-2" />
-              <p className="text-white">Loading...</p>
-            </motion.div>
+        {tabs.map(tab => (
+          <div
+            key={tab.id}
+            className={`absolute inset-0 ${tab.isActive ? 'block' : 'hidden'}`}
+          >
+            {tab.url === 'about:newtab' ? (
+              <NewTabPage />
+            ) : (
+              <iframe
+                ref={el => webviewRefs.current[tab.id] = el}
+                src={tab.url}
+                className="w-full h-full border-0"
+                onLoad={() => handleIframeLoad(tab.id)}
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+                title={`Tab ${tab.id}`}
+              />
+            )}
+          </div>
+        ))}
+
+        {activeTab?.isLoading && (
+          <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10">
+            <div className="text-center">
+              <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
+              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
           </div>
         )}
-        
-        <iframe
-          ref={iframeRef}
-          src={currentUrl}
-          className="w-full h-full border-0"
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-          title="Browser"
-        />
-      </div>
-
-      {/* Status Bar */}
-      <div className="glass-topbar p-2 border-t border-white/10">
-        <div className="flex items-center justify-between text-sm text-gray-400">
-          <span>{currentUrl}</span>
-          <div className="flex items-center gap-2">
-            <Globe className="w-3 h-3" />
-            <span>Secure Connection</span>
-          </div>
-        </div>
       </div>
     </div>
   )
-} 
+}

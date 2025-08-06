@@ -1,10 +1,10 @@
 
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
-  Image, 
+  Image as ImageIcon, 
   Upload, 
   Download, 
   Trash2, 
@@ -39,22 +39,25 @@ import {
   Folder,
   Sun,
   Contrast,
-  Zap
+  Zap,
+  Brightness,
+  Saturation
 } from "lucide-react"
 
 interface Photo {
   id: string
   name: string
   src: string
-  thumbnail: string
+  blob?: Blob
   size: string
   dimensions: string
   dateTaken: string
-  location: string
-  camera: string
+  location?: string
+  camera?: string
   tags: string[]
   favorite: boolean
   edited: boolean
+  type: string
 }
 
 interface Album {
@@ -63,6 +66,16 @@ interface Album {
   thumbnail: string
   photoCount: number
   photos: string[]
+}
+
+interface EditingState {
+  brightness: number
+  contrast: number
+  saturation: number
+  rotation: number
+  zoom: number
+  flipHorizontal: boolean
+  flipVertical: boolean
 }
 
 export default function PhotosApp() {
@@ -78,120 +91,115 @@ export default function PhotosApp() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [zoom, setZoom] = useState(100)
   const [currentTab, setCurrentTab] = useState<'photos' | 'albums' | 'favorites'>('photos')
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [editingState, setEditingState] = useState<EditingState>({
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    rotation: 0,
+    zoom: 100,
+    flipHorizontal: false,
+    flipVertical: false
+  })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // Mock photo data
-  const photos: Photo[] = [
-    {
-      id: '1',
-      name: 'sunset-beach.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '2.4 MB',
-      dimensions: '3840×2160',
-      dateTaken: '2024-01-15 18:30',
-      location: 'Malibu Beach, CA',
-      camera: 'Canon EOS R5',
-      tags: ['sunset', 'beach', 'nature'],
-      favorite: true,
-      edited: false
-    },
-    {
-      id: '2',
-      name: 'mountain-vista.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '3.1 MB',
-      dimensions: '4032×3024',
-      dateTaken: '2024-01-14 10:15',
-      location: 'Rocky Mountains, CO',
-      camera: 'Sony A7R V',
-      tags: ['mountain', 'landscape', 'snow'],
-      favorite: false,
-      edited: true
-    },
-    {
-      id: '3',
-      name: 'city-lights.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '1.8 MB',
-      dimensions: '2560×1440',
-      dateTaken: '2024-01-13 21:45',
-      location: 'New York City, NY',
-      camera: 'iPhone 15 Pro',
-      tags: ['city', 'night', 'urban'],
-      favorite: true,
-      edited: false
-    },
-    {
-      id: '4',
-      name: 'forest-path.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '2.7 MB',
-      dimensions: '3200×2400',
-      dateTaken: '2024-01-12 14:20',
-      location: 'Redwood National Park, CA',
-      camera: 'Nikon D850',
-      tags: ['forest', 'nature', 'trees'],
-      favorite: false,
-      edited: false
-    },
-    {
-      id: '5',
-      name: 'ocean-wave.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '3.3 MB',
-      dimensions: '4096×2731',
-      dateTaken: '2024-01-11 07:00',
-      location: 'Big Sur, CA',
-      camera: 'Canon EOS R6 Mark II',
-      tags: ['ocean', 'waves', 'seascape'],
-      favorite: true,
-      edited: true
-    },
-    {
-      id: '6',
-      name: 'desert-dunes.jpg',
-      src: '/placeholder.jpg',
-      thumbnail: '/placeholder.jpg',
-      size: '2.1 MB',
-      dimensions: '3000×2000',
-      dateTaken: '2024-01-10 16:30',
-      location: 'Death Valley, CA',
-      camera: 'Fujifilm X-T5',
-      tags: ['desert', 'sand', 'landscape'],
-      favorite: false,
-      edited: false
+  // Load photos from localStorage on mount
+  useEffect(() => {
+    const savedPhotos = localStorage.getItem('mominos-photos')
+    if (savedPhotos) {
+      try {
+        const parsed = JSON.parse(savedPhotos)
+        setPhotos(parsed)
+      } catch (e) {
+        console.error('Failed to load saved photos:', e)
+      }
     }
-  ]
+  }, [])
+
+  // Save photos to localStorage whenever photos change
+  useEffect(() => {
+    localStorage.setItem('mominos-photos', JSON.stringify(photos))
+  }, [photos])
 
   const albums: Album[] = [
     {
       id: '1',
-      name: 'Nature & Landscapes',
-      thumbnail: '/placeholder.jpg',
-      photoCount: 24,
-      photos: ['1', '2', '4', '5', '6']
+      name: 'Recently Added',
+      thumbnail: photos[0]?.src || '/placeholder.svg',
+      photoCount: photos.length,
+      photos: photos.map(p => p.id)
     },
     {
       id: '2',
-      name: 'City Life',
-      thumbnail: '/placeholder.jpg',
-      photoCount: 12,
-      photos: ['3']
+      name: 'Favorites',
+      thumbnail: photos.find(p => p.favorite)?.src || '/placeholder.svg',
+      photoCount: photos.filter(p => p.favorite).length,
+      photos: photos.filter(p => p.favorite).map(p => p.id)
     },
     {
       id: '3',
-      name: 'Travel Adventures',
-      thumbnail: '/placeholder.jpg',
-      photoCount: 18,
-      photos: ['1', '2', '3', '4', '5', '6']
+      name: 'Edited',
+      thumbnail: photos.find(p => p.edited)?.src || '/placeholder.svg',
+      photoCount: photos.filter(p => p.edited).length,
+      photos: photos.filter(p => p.edited).map(p => p.id)
     }
   ]
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files) return
+
+    const newPhotos: Photo[] = []
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      if (!file.type.startsWith('image/')) continue
+
+      try {
+        // Create object URL for the image
+        const src = URL.createObjectURL(file)
+        
+        // Get image dimensions
+        const img = new Image()
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = src
+        })
+
+        const photo: Photo = {
+          id: `photo-${Date.now()}-${i}`,
+          name: file.name,
+          src,
+          blob: file,
+          size: formatFileSize(file.size),
+          dimensions: `${img.width}×${img.height}`,
+          dateTaken: new Date(file.lastModified).toISOString(),
+          type: file.type,
+          tags: [],
+          favorite: false,
+          edited: false
+        }
+
+        newPhotos.push(photo)
+      } catch (error) {
+        console.error('Error processing image:', error)
+      }
+    }
+
+    setPhotos(prev => [...prev, ...newPhotos])
+    event.target.value = '' // Reset file input
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
 
   const filteredPhotos = photos.filter(photo => {
     const matchesSearch = photo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -215,20 +223,14 @@ export default function PhotosApp() {
       case 'name':
         return a.name.localeCompare(b.name)
       case 'size':
-        return parseFloat(b.size) - parseFloat(a.size)
+        const sizeA = parseFloat(a.size.split(' ')[0])
+        const sizeB = parseFloat(b.size.split(' ')[0])
+        return sizeB - sizeA
       case 'date':
       default:
         return new Date(b.dateTaken).getTime() - new Date(a.dateTaken).getTime()
     }
   })
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      // Handle file upload logic here
-      console.log('Files to upload:', files)
-    }
-  }
 
   const togglePhotoSelection = (photoId: string) => {
     setSelectedPhotos(prev => 
@@ -239,14 +241,34 @@ export default function PhotosApp() {
   }
 
   const toggleFavorite = (photoId: string) => {
-    // In a real app, this would update the database
-    console.log('Toggle favorite:', photoId)
+    setPhotos(prev => prev.map(photo => 
+      photo.id === photoId 
+        ? { ...photo, favorite: !photo.favorite }
+        : photo
+    ))
   }
 
   const deletePhotos = (photoIds: string[]) => {
-    // In a real app, this would delete from storage
-    console.log('Delete photos:', photoIds)
+    setPhotos(prev => {
+      const toDelete = prev.filter(photo => photoIds.includes(photo.id))
+      // Revoke object URLs to prevent memory leaks
+      toDelete.forEach(photo => {
+        if (photo.src.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.src)
+        }
+      })
+      return prev.filter(photo => !photoIds.includes(photo.id))
+    })
     setSelectedPhotos([])
+  }
+
+  const downloadPhoto = (photo: Photo) => {
+    const link = document.createElement('a')
+    link.href = photo.src
+    link.download = photo.name
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const startSlideshow = (startIndex = 0) => {
@@ -255,9 +277,99 @@ export default function PhotosApp() {
     setIsPlaying(true)
   }
 
+  const applyImageEdit = () => {
+    if (!selectedPhoto || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const img = new Image()
+    img.onload = () => {
+      // Set canvas dimensions
+      canvas.width = img.width
+      canvas.height = img.height
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      // Apply transformations
+      ctx.save()
+      
+      // Move to center for rotation
+      ctx.translate(canvas.width / 2, canvas.height / 2)
+      
+      // Apply rotation
+      ctx.rotate(editingState.rotation * Math.PI / 180)
+      
+      // Apply flips
+      ctx.scale(
+        editingState.flipHorizontal ? -1 : 1,
+        editingState.flipVertical ? -1 : 1
+      )
+      
+      // Draw image
+      ctx.drawImage(img, -img.width / 2, -img.height / 2)
+      
+      ctx.restore()
+
+      // Apply filters
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+
+      for (let i = 0; i < data.length; i += 4) {
+        // Apply brightness
+        data[i] = Math.max(0, Math.min(255, data[i] + editingState.brightness))
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + editingState.brightness))
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + editingState.brightness))
+
+        // Apply contrast
+        const contrast = (editingState.contrast + 100) / 100
+        data[i] = Math.max(0, Math.min(255, (data[i] - 128) * contrast + 128))
+        data[i + 1] = Math.max(0, Math.min(255, (data[i + 1] - 128) * contrast + 128))
+        data[i + 2] = Math.max(0, Math.min(255, (data[i + 2] - 128) * contrast + 128))
+
+        // Apply saturation
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+        const saturation = (editingState.saturation + 100) / 100
+        data[i] = Math.max(0, Math.min(255, gray + saturation * (data[i] - gray)))
+        data[i + 1] = Math.max(0, Math.min(255, gray + saturation * (data[i + 1] - gray)))
+        data[i + 2] = Math.max(0, Math.min(255, gray + saturation * (data[i + 2] - gray)))
+      }
+
+      ctx.putImageData(imageData, 0, 0)
+
+      // Convert to blob and update photo
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const newSrc = URL.createObjectURL(blob)
+          setPhotos(prev => prev.map(photo => 
+            photo.id === selectedPhoto.id 
+              ? { ...photo, src: newSrc, edited: true, blob }
+              : photo
+          ))
+          setSelectedPhoto({ ...selectedPhoto, src: newSrc, edited: true })
+        }
+      }, 'image/jpeg', 0.9)
+    }
+    img.src = selectedPhoto.src
+  }
+
+  const resetEditingState = () => {
+    setEditingState({
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      rotation: 0,
+      zoom: 100,
+      flipHorizontal: false,
+      flipVertical: false
+    })
+  }
+
   const PhotoCard = ({ photo, index }: { photo: Photo; index: number }) => (
     <motion.div
-      className={`relative glass-card overflow-hidden cursor-pointer ${
+      className={`relative glass-card overflow-hidden cursor-pointer group ${
         selectedPhotos.includes(photo.id) ? 'ring-2 ring-purple-500' : ''
       }`}
       whileHover={{ scale: 1.02 }}
@@ -270,14 +382,18 @@ export default function PhotosApp() {
     >
       <div className="aspect-square relative overflow-hidden">
         <img
-          src={photo.thumbnail}
+          src={photo.src}
           alt={photo.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+          onError={(e) => {
+            const img = e.target as HTMLImageElement
+            img.src = '/placeholder.svg'
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="absolute bottom-2 left-2 right-2">
             <p className="text-white text-sm font-medium truncate">{photo.name}</p>
-            <p className="text-gray-300 text-xs">{photo.dateTaken}</p>
+            <p className="text-gray-300 text-xs">{new Date(photo.dateTaken).toLocaleDateString()}</p>
           </div>
         </div>
         <div className="absolute top-2 right-2 flex gap-1">
@@ -292,8 +408,21 @@ export default function PhotosApp() {
             </div>
           )}
         </div>
+        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(photo.id)
+            }}
+            className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Heart className={`w-4 h-4 ${photo.favorite ? 'text-red-500 fill-current' : 'text-white'}`} />
+          </motion.button>
+        </div>
         <motion.button
-          className="absolute bottom-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100"
+          className="absolute bottom-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100"
           onClick={(e) => {
             e.stopPropagation()
             startSlideshow(index)
@@ -307,27 +436,6 @@ export default function PhotosApp() {
     </motion.div>
   )
 
-  const AlbumCard = ({ album }: { album: Album }) => (
-    <motion.div
-      className="glass-card p-4 cursor-pointer"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="aspect-square relative overflow-hidden rounded-lg mb-3">
-        <img
-          src={album.thumbnail}
-          alt={album.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-          {album.photoCount} photos
-        </div>
-      </div>
-      <h3 className="text-white font-medium">{album.name}</h3>
-    </motion.div>
-  )
-
   return (
     <div className="h-full bg-black/20 backdrop-blur-xl flex flex-col">
       {/* Header */}
@@ -335,7 +443,7 @@ export default function PhotosApp() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Image className="w-5 h-5 text-purple-400" />
+              <ImageIcon className="w-5 h-5 text-purple-400" />
               <span className="text-white font-medium">Photos</span>
             </div>
             <div className="flex items-center gap-1">
@@ -416,21 +524,65 @@ export default function PhotosApp() {
       {/* Main Content */}
       <div className="flex-1 p-4 overflow-auto">
         {currentTab === 'photos' && (
-          <div className={`grid gap-4 ${
-            viewMode === 'grid' 
-              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' 
-              : 'grid-cols-1'
-          }`}>
-            {sortedPhotos.map((photo, index) => (
-              <PhotoCard key={photo.id} photo={photo} index={index} />
-            ))}
-          </div>
+          <>
+            {sortedPhotos.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center text-gray-400">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg mb-2">No photos yet</p>
+                  <p className="text-sm mb-4">Click Import to add your first photos</p>
+                  <motion.button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="glass-button px-4 py-2 flex items-center gap-2 mx-auto"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import Photos
+                  </motion.button>
+                </div>
+              </div>
+            ) : (
+              <div className={`grid gap-4 ${
+                viewMode === 'grid' 
+                  ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' 
+                  : 'grid-cols-1'
+              }`}>
+                {sortedPhotos.map((photo, index) => (
+                  <PhotoCard key={photo.id} photo={photo} index={index} />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {currentTab === 'albums' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {albums.map(album => (
-              <AlbumCard key={album.id} album={album} />
+              <motion.div
+                key={album.id}
+                className="glass-card p-4 cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setCurrentTab('photos')}
+              >
+                <div className="aspect-square relative overflow-hidden rounded-lg mb-3">
+                  <img
+                    src={album.thumbnail}
+                    alt={album.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement
+                      img.src = '/placeholder.svg'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                    {album.photoCount} photos
+                  </div>
+                </div>
+                <h3 className="text-white font-medium">{album.name}</h3>
+              </motion.div>
             ))}
           </div>
         )}
@@ -467,6 +619,10 @@ export default function PhotosApp() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: zoom / 100, opacity: 1 }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement
+                  img.src = '/placeholder.svg'
+                }}
               />
               
               {/* Controls */}
@@ -486,6 +642,14 @@ export default function PhotosApp() {
                   whileTap={{ scale: 0.9 }}
                 >
                   <ZoomIn className="w-4 h-4 text-white" />
+                </motion.button>
+                <motion.button
+                  onClick={() => downloadPhoto(selectedPhoto)}
+                  className="glass-button p-2"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Download className="w-4 h-4 text-white" />
                 </motion.button>
                 <motion.button
                   onClick={() => setShowEditor(true)}
@@ -511,30 +675,24 @@ export default function PhotosApp() {
                 <div className="space-y-1 text-sm text-gray-300">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-3 h-3" />
-                    <span>{selectedPhoto.dateTaken}</span>
+                    <span>{new Date(selectedPhoto.dateTaken).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-3 h-3" />
-                    <span>{selectedPhoto.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-3 h-3" />
-                    <span>{selectedPhoto.camera}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Image className="w-3 h-3" />
+                    <ImageIcon className="w-3 h-3" />
                     <span>{selectedPhoto.dimensions} • {selectedPhoto.size}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-3 h-3" />
-                    <div className="flex gap-1">
-                      {selectedPhoto.tags.map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-white/20 rounded text-xs">
-                          {tag}
-                        </span>
-                      ))}
+                  {selectedPhoto.tags.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-3 h-3" />
+                      <div className="flex gap-1">
+                        {selectedPhoto.tags.map(tag => (
+                          <span key={tag} className="px-2 py-1 bg-white/20 rounded text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -553,73 +711,139 @@ export default function PhotosApp() {
           >
             <div className="h-full flex">
               {/* Editor Toolbar */}
-              <div className="w-64 glass-card border-r border-white/10 p-4">
+              <div className="w-80 glass-card border-r border-white/10 p-4 overflow-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-white font-semibold">Photo Editor</h3>
-                  <motion.button
-                    onClick={() => setShowEditor(false)}
-                    className="text-gray-400 hover:text-white"
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <X className="w-4 h-4" />
-                  </motion.button>
+                  <div className="flex gap-2">
+                    <motion.button
+                      onClick={resetEditingState}
+                      className="text-gray-400 hover:text-white text-sm"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      Reset
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowEditor(false)}
+                      className="text-gray-400 hover:text-white"
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* Basic Adjustments */}
                   <div>
-                    <h4 className="text-white font-medium mb-2">Adjustments</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Sun className="w-4 h-4 text-yellow-400" />
-                        <span className="text-gray-300 text-sm">Brightness</span>
-                        <input type="range" min="0" max="100" defaultValue="50" className="flex-1" />
+                    <h4 className="text-white font-medium mb-4">Adjustments</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sun className="w-4 h-4 text-yellow-400" />
+                          <span className="text-gray-300 text-sm">Brightness</span>
+                          <span className="text-gray-400 text-xs ml-auto">{editingState.brightness}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="-100" 
+                          max="100" 
+                          value={editingState.brightness}
+                          onChange={(e) => setEditingState(prev => ({ ...prev, brightness: parseInt(e.target.value) }))}
+                          className="w-full" 
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Contrast className="w-4 h-4 text-blue-400" />
-                        <span className="text-gray-300 text-sm">Contrast</span>
-                        <input type="range" min="0" max="100" defaultValue="50" className="flex-1" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Contrast className="w-4 h-4 text-blue-400" />
+                          <span className="text-gray-300 text-sm">Contrast</span>
+                          <span className="text-gray-400 text-xs ml-auto">{editingState.contrast}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="-100" 
+                          max="100" 
+                          value={editingState.contrast}
+                          onChange={(e) => setEditingState(prev => ({ ...prev, contrast: parseInt(e.target.value) }))}
+                          className="w-full" 
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-purple-400" />
-                        <span className="text-gray-300 text-sm">Saturation</span>
-                        <input type="range" min="0" max="100" defaultValue="50" className="flex-1" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="w-4 h-4 text-purple-400" />
+                          <span className="text-gray-300 text-sm">Saturation</span>
+                          <span className="text-gray-400 text-xs ml-auto">{editingState.saturation}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="-100" 
+                          max="100" 
+                          value={editingState.saturation}
+                          onChange={(e) => setEditingState(prev => ({ ...prev, saturation: parseInt(e.target.value) }))}
+                          className="w-full" 
+                        />
                       </div>
                     </div>
                   </div>
                   
+                  {/* Transform Tools */}
                   <div>
-                    <h4 className="text-white font-medium mb-2">Tools</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <h4 className="text-white font-medium mb-4">Transform</h4>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
                       <motion.button
-                        className="glass-button p-2 flex items-center gap-2"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Crop className="w-4 h-4" />
-                        Crop
-                      </motion.button>
-                      <motion.button
-                        className="glass-button p-2 flex items-center gap-2"
+                        onClick={() => setEditingState(prev => ({ ...prev, rotation: (prev.rotation + 90) % 360 }))}
+                        className="glass-button p-3 flex flex-col items-center gap-2"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
                         <RotateCw className="w-4 h-4" />
-                        Rotate
+                        <span className="text-xs">Rotate</span>
+                      </motion.button>
+                      <motion.button
+                        onClick={() => setEditingState(prev => ({ ...prev, flipHorizontal: !prev.flipHorizontal }))}
+                        className={`glass-button p-3 flex flex-col items-center gap-2 ${editingState.flipHorizontal ? 'bg-white/20' : ''}`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Move className="w-4 h-4" />
+                        <span className="text-xs">Flip H</span>
                       </motion.button>
                     </div>
+                  </div>
+
+                  {/* Save Changes */}
+                  <div className="pt-4 border-t border-white/10">
+                    <motion.button
+                      onClick={applyImageEdit}
+                      className="w-full glass-button bg-purple-500/20 hover:bg-purple-500/30 p-3 text-white font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Apply Changes
+                    </motion.button>
                   </div>
                 </div>
               </div>
 
               {/* Editor Canvas */}
-              <div className="flex-1 flex items-center justify-center p-4">
-                <img
-                  src={selectedPhoto.src}
-                  alt={selectedPhoto.name}
-                  className="max-w-full max-h-full object-contain"
-                />
+              <div className="flex-1 flex items-center justify-center p-4 bg-gray-900">
+                <div className="relative">
+                  <img
+                    src={selectedPhoto.src}
+                    alt={selectedPhoto.name}
+                    className="max-w-full max-h-full object-contain"
+                    style={{
+                      filter: `brightness(${100 + editingState.brightness}%) contrast(${100 + editingState.contrast}%) saturate(${100 + editingState.saturation}%)`,
+                      transform: `rotate(${editingState.rotation}deg) scaleX(${editingState.flipHorizontal ? -1 : 1}) scaleY(${editingState.flipVertical ? -1 : 1})`
+                    }}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement
+                      img.src = '/placeholder.svg'
+                    }}
+                  />
+                </div>
               </div>
             </div>
+            <canvas ref={canvasRef} className="hidden" />
           </motion.div>
         )}
       </AnimatePresence>

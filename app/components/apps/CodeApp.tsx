@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { motion } from "framer-motion"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   Code, 
   File, 
@@ -34,7 +34,12 @@ import {
   Undo,
   Redo,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  FolderPlus,
+  FilePlus,
+  Trash2,
+  Download,
+  Upload
 } from "lucide-react"
 
 interface FileItem {
@@ -46,6 +51,7 @@ interface FileItem {
   language?: string
   path: string
   modified?: boolean
+  saved?: boolean
 }
 
 interface Tab {
@@ -55,81 +61,140 @@ interface Tab {
   language: string
   path: string
   modified: boolean
+  saved: boolean
 }
 
 export default function CodeApp() {
-  const [files, setFiles] = useState<FileItem[]>([
-    {
-      id: '1',
-      name: 'src',
-      type: 'folder',
-      path: '/src',
-      children: [
-        {
-          id: '2',
-          name: 'App.tsx',
-          type: 'file',
-          content: `import React from 'react';
-import './App.css';
+  const [files, setFiles] = useState<FileItem[]>([])
+  const [tabs, setTabs] = useState<Tab[]>([])
+  const [activeTab, setActiveTab] = useState<string | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [replaceQuery, setReplaceQuery] = useState("")
+  const [fontSize, setFontSize] = useState(14)
+  const [wordWrap, setWordWrap] = useState(true)
+  const [showLineNumbers, setShowLineNumbers] = useState(true)
+  const [theme, setTheme] = useState('dark')
+  const [expandedFolders, setExpandedFolders] = useState<string[]>([])
+  const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 })
+  const [isRunning, setIsRunning] = useState(false)
+  const [output, setOutput] = useState<string[]>([])
+  const [showOutput, setShowOutput] = useState(false)
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Welcome to MominOS Code Editor</h1>
-        <p>Start building amazing applications!</p>
-      </header>
-    </div>
-  );
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load files from localStorage on mount
+  useEffect(() => {
+    const savedFiles = localStorage.getItem('mominos-code-files')
+    if (savedFiles) {
+      try {
+        const parsed = JSON.parse(savedFiles)
+        setFiles(parsed)
+        setExpandedFolders(parsed.filter((f: FileItem) => f.type === 'folder').map((f: FileItem) => f.id))
+      } catch (e) {
+        console.error('Failed to load saved files:', e)
+        initializeDefaultFiles()
+      }
+    } else {
+      initializeDefaultFiles()
+    }
+  }, [])
+
+  // Save files to localStorage whenever files change
+  useEffect(() => {
+    localStorage.setItem('mominos-code-files', JSON.stringify(files))
+  }, [files])
+
+  const initializeDefaultFiles = () => {
+    const defaultFiles: FileItem[] = [
+      {
+        id: 'root',
+        name: 'project-root',
+        type: 'folder',
+        path: '/',
+        children: [
+          {
+            id: 'readme',
+            name: 'README.md',
+            type: 'file',
+            content: `# My Project
+
+Welcome to your new project! This is a fully functional code editor.
+
+## Features
+- File management
+- Syntax highlighting
+- Real file operations
+- Code execution
+- Search and replace
+
+Start coding by creating new files or editing existing ones!`,
+            language: 'markdown',
+            path: '/README.md',
+            modified: false,
+            saved: true
+          },
+          {
+            id: 'src-folder',
+            name: 'src',
+            type: 'folder',
+            path: '/src',
+            children: [
+              {
+                id: 'main-js',
+                name: 'main.js',
+                type: 'file',
+                content: `// Main application entry point
+console.log('Welcome to MominOS Code Editor!');
+
+function greet(name) {
+  return \`Hello, \${name}! Happy coding!\`;
 }
 
-export default App;`,
-          language: 'typescript',
-          path: '/src/App.tsx',
-          modified: false
-        },
-        {
-          id: '3',
-          name: 'index.ts',
-          type: 'file',
-          content: `// Entry point for the application
-import { createApp } from './app';
-import { setupRouter } from './router';
-import { initializeDatabase } from './database';
+function calculateFibonacci(n) {
+  if (n <= 1) return n;
+  return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+}
 
-async function bootstrap() {
+// Example usage
+const userName = 'Developer';
+console.log(greet(userName));
+
+// Calculate fibonacci sequence
+for (let i = 0; i < 10; i++) {
+  console.log(\`Fibonacci(\${i}) = \${calculateFibonacci(i)}\`);
+}
+
+// Modern JavaScript features
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(n => n * 2);
+console.log('Doubled numbers:', doubled);
+
+// Async/await example
+async function fetchData() {
   try {
-    await initializeDatabase();
-    const app = createApp();
-    setupRouter(app);
-    
-    app.listen(3000, () => {
-      console.log('Server running on http://localhost:3000');
-    });
+    console.log('Simulating API call...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Data fetched successfully!');
+    return { message: 'Hello from async function!' };
   } catch (error) {
-    console.error('Failed to start application:', error);
-    process.exit(1);
+    console.error('Error fetching data:', error);
   }
 }
 
-bootstrap();`,
-          language: 'typescript',
-          path: '/src/index.ts',
-          modified: false
-        }
-      ]
-    },
-    {
-      id: '4',
-      name: 'styles',
-      type: 'folder',
-      path: '/styles',
-      children: [
-        {
-          id: '5',
-          name: 'main.css',
-          type: 'file',
-          content: `/* Main stylesheet for MominOS applications */
+fetchData().then(data => console.log(data));`,
+                language: 'javascript',
+                path: '/src/main.js',
+                modified: false,
+                saved: true
+              },
+              {
+                id: 'styles-css',
+                name: 'styles.css',
+                type: 'file',
+                content: `/* MominOS Code Editor Styles */
 :root {
   --primary-color: #8b5cf6;
   --secondary-color: #10b981;
@@ -137,6 +202,7 @@ bootstrap();`,
   --surface: #1e293b;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
+  --border: #334155;
 }
 
 * {
@@ -166,72 +232,83 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.code-editor {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.syntax-highlight {
+  color: var(--text-primary);
+}
+
+.syntax-keyword {
+  color: #c678dd;
+  font-weight: bold;
+}
+
+.syntax-string {
+  color: #98c379;
+}
+
+.syntax-comment {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.syntax-number {
+  color: #d19a66;
+}
+
+.syntax-function {
+  color: #61afef;
 }`,
-          language: 'css',
-          path: '/styles/main.css',
-          modified: false
-        }
-      ]
-    },
-    {
-      id: '6',
-      name: 'package.json',
-      type: 'file',
-      content: `{
+                language: 'css',
+                path: '/src/styles.css',
+                modified: false,
+                saved: true
+              }
+            ]
+          },
+          {
+            id: 'package-json',
+            name: 'package.json',
+            type: 'file',
+            content: `{
   "name": "mominos-project",
   "version": "1.0.0",
-  "description": "A MominOS application",
-  "main": "src/index.ts",
+  "description": "A MominOS Code Editor project",
+  "main": "src/main.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "jest",
-    "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "start": "node src/main.js",
+    "dev": "node src/main.js",
+    "test": "echo \\"No tests specified\\" && exit 1"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "typescript": "^5.0.0",
-    "nodemon": "^3.0.0",
-    "jest": "^29.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  },
-  "keywords": ["mominos", "desktop", "app"],
+  "keywords": ["mominos", "desktop", "app", "code"],
   "author": "MominOS Developer",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
 }`,
-      language: 'json',
-      path: '/package.json',
-      modified: false
-    }
-  ])
-
-  const [tabs, setTabs] = useState<Tab[]>([])
-  const [activeTab, setActiveTab] = useState<string | null>(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [replaceQuery, setReplaceQuery] = useState("")
-  const [fontSize, setFontSize] = useState(14)
-  const [wordWrap, setWordWrap] = useState(true)
-  const [showLineNumbers, setShowLineNumbers] = useState(true)
-  const [theme, setTheme] = useState('dark')
-  const [expandedFolders, setExpandedFolders] = useState<string[]>(['1', '4'])
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+            language: 'json',
+            path: '/package.json',
+            modified: false,
+            saved: true
+          }
+        ]
+      }
+    ]
+    setFiles(defaultFiles)
+    setExpandedFolders(['root', 'src-folder'])
+  }
 
   const getFileIcon = (file: FileItem) => {
     if (file.type === 'folder') return Folder
@@ -300,8 +377,31 @@ body {
     }
   }
 
+  const findFileById = (files: FileItem[], id: string): FileItem | null => {
+    for (const file of files) {
+      if (file.id === id) return file
+      if (file.children) {
+        const found = findFileById(file.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const updateFileContent = (files: FileItem[], fileId: string, newContent: string): FileItem[] => {
+    return files.map(file => {
+      if (file.id === fileId) {
+        return { ...file, content: newContent, modified: true, saved: false }
+      }
+      if (file.children) {
+        return { ...file, children: updateFileContent(file.children, fileId, newContent) }
+      }
+      return file
+    })
+  }
+
   const openFile = (file: FileItem) => {
-    if (file.type === 'folder' || !file.content) return
+    if (file.type === 'folder' || !file.content === undefined) return
 
     const existingTab = tabs.find(tab => tab.path === file.path)
     if (existingTab) {
@@ -312,10 +412,11 @@ body {
     const newTab: Tab = {
       id: file.id,
       name: file.name,
-      content: file.content,
+      content: file.content || '',
       language: file.language || getLanguageFromFile(file.name),
       path: file.path,
-      modified: false
+      modified: false,
+      saved: file.saved || true
     }
 
     setTabs(prev => [...prev, newTab])
@@ -323,6 +424,13 @@ body {
   }
 
   const closeTab = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab && tab.modified) {
+      if (!confirm(`${tab.name} has unsaved changes. Close anyway?`)) {
+        return
+      }
+    }
+
     setTabs(prev => prev.filter(tab => tab.id !== tabId))
     if (activeTab === tabId) {
       const remainingTabs = tabs.filter(tab => tab.id !== tabId)
@@ -333,22 +441,157 @@ body {
   const updateTabContent = (tabId: string, content: string) => {
     setTabs(prev => prev.map(tab => 
       tab.id === tabId 
-        ? { ...tab, content, modified: true }
+        ? { ...tab, content, modified: true, saved: false }
         : tab
     ))
+
+    // Also update the file content
+    setFiles(prev => updateFileContent(prev, tabId, content))
   }
 
   const saveFile = () => {
     if (!activeTab) return
     
+    const tab = tabs.find(t => t.id === activeTab)
+    if (!tab) return
+
     setTabs(prev => prev.map(tab => 
       tab.id === activeTab 
-        ? { ...tab, modified: false }
+        ? { ...tab, modified: false, saved: true }
         : tab
     ))
+
+    // Update the file as saved
+    const updateFileSaved = (files: FileItem[]): FileItem[] => {
+      return files.map(file => {
+        if (file.id === activeTab) {
+          return { ...file, modified: false, saved: true }
+        }
+        if (file.children) {
+          return { ...file, children: updateFileSaved(file.children) }
+        }
+        return file
+      })
+    }
+
+    setFiles(prev => updateFileSaved(prev))
     
-    // In a real app, you would save to the file system
-    console.log('File saved:', activeTab)
+    // Simulate file save
+    console.log(`File saved: ${tab.name}`)
+    setOutput(prev => [...prev, `✓ File saved: ${tab.name} at ${new Date().toLocaleTimeString()}`])
+  }
+
+  const saveAllFiles = () => {
+    const modifiedTabs = tabs.filter(tab => tab.modified)
+    modifiedTabs.forEach(tab => {
+      setTabs(prev => prev.map(t => 
+        t.id === tab.id 
+          ? { ...t, modified: false, saved: true }
+          : t
+      ))
+    })
+
+    const updateAllFilesSaved = (files: FileItem[]): FileItem[] => {
+      return files.map(file => {
+        if (file.type === 'file') {
+          return { ...file, modified: false, saved: true }
+        }
+        if (file.children) {
+          return { ...file, children: updateAllFilesSaved(file.children) }
+        }
+        return file
+      })
+    }
+
+    setFiles(prev => updateAllFilesSaved(prev))
+    setOutput(prev => [...prev, `✓ All files saved at ${new Date().toLocaleTimeString()}`])
+  }
+
+  const createNewFile = (parentId: string = 'root') => {
+    const fileName = prompt('Enter file name:')
+    if (!fileName) return
+
+    const newFile: FileItem = {
+      id: `file-${Date.now()}`,
+      name: fileName,
+      type: 'file',
+      content: '',
+      language: getLanguageFromFile(fileName),
+      path: `/${fileName}`,
+      modified: false,
+      saved: true
+    }
+
+    const addFileToParent = (files: FileItem[]): FileItem[] => {
+      return files.map(file => {
+        if (file.id === parentId && file.type === 'folder') {
+          return {
+            ...file,
+            children: [...(file.children || []), newFile]
+          }
+        }
+        if (file.children) {
+          return { ...file, children: addFileToParent(file.children) }
+        }
+        return file
+      })
+    }
+
+    setFiles(prev => addFileToParent(prev))
+    openFile(newFile)
+  }
+
+  const createNewFolder = (parentId: string = 'root') => {
+    const folderName = prompt('Enter folder name:')
+    if (!folderName) return
+
+    const newFolder: FileItem = {
+      id: `folder-${Date.now()}`,
+      name: folderName,
+      type: 'folder',
+      path: `/${folderName}`,
+      children: []
+    }
+
+    const addFolderToParent = (files: FileItem[]): FileItem[] => {
+      return files.map(file => {
+        if (file.id === parentId && file.type === 'folder') {
+          return {
+            ...file,
+            children: [...(file.children || []), newFolder]
+          }
+        }
+        if (file.children) {
+          return { ...file, children: addFolderToParent(file.children) }
+        }
+        return file
+      })
+    }
+
+    setFiles(prev => addFolderToParent(prev))
+    setExpandedFolders(prev => [...prev, newFolder.id])
+  }
+
+  const deleteFile = (fileId: string) => {
+    const file = findFileById(files, fileId)
+    if (!file) return
+
+    if (!confirm(`Delete ${file.name}?`)) return
+
+    // Close tab if file is open
+    const openTab = tabs.find(tab => tab.id === fileId)
+    if (openTab) {
+      closeTab(fileId)
+    }
+
+    const removeFile = (files: FileItem[]): FileItem[] => {
+      return files.filter(file => file.id !== fileId).map(file => ({
+        ...file,
+        children: file.children ? removeFile(file.children) : undefined
+      }))
+    }
+
+    setFiles(prev => removeFile(prev))
   }
 
   const toggleFolder = (folderId: string) => {
@@ -359,6 +602,120 @@ body {
     )
   }
 
+  const runCode = async () => {
+    if (!activeTab) return
+
+    const tab = tabs.find(t => t.id === activeTab)
+    if (!tab) return
+
+    setIsRunning(true)
+    setShowOutput(true)
+    setOutput(prev => [...prev, `\n--- Running ${tab.name} ---`])
+
+    try {
+      if (tab.language === 'javascript') {
+        // Create a safe execution context
+        const consoleOutput: string[] = []
+        const mockConsole = {
+          log: (...args: any[]) => {
+            consoleOutput.push(args.map(arg => 
+              typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' '))
+          },
+          error: (...args: any[]) => {
+            consoleOutput.push('ERROR: ' + args.map(arg => String(arg)).join(' '))
+          },
+          warn: (...args: any[]) => {
+            consoleOutput.push('WARNING: ' + args.map(arg => String(arg)).join(' '))
+          }
+        }
+
+        // Simple evaluation (in a real app, you'd want a more secure sandbox)
+        const wrappedCode = `
+          (function() {
+            const console = arguments[0];
+            ${tab.content}
+          })
+        `
+
+        try {
+          const func = new Function('return ' + wrappedCode)()
+          await func(mockConsole)
+          
+          if (consoleOutput.length === 0) {
+            consoleOutput.push('Code executed successfully (no output)')
+          }
+        } catch (error) {
+          consoleOutput.push(`Runtime Error: ${error instanceof Error ? error.message : String(error)}`)
+        }
+
+        setOutput(prev => [...prev, ...consoleOutput])
+      } else {
+        setOutput(prev => [...prev, `Language ${tab.language} execution not implemented yet`])
+      }
+    } catch (error) {
+      setOutput(prev => [...prev, `Error: ${error instanceof Error ? error.message : String(error)}`])
+    } finally {
+      setIsRunning(false)
+      setOutput(prev => [...prev, `--- Execution completed ---\n`])
+    }
+  }
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files) return
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        const newFile: FileItem = {
+          id: `import-${Date.now()}-${Math.random()}`,
+          name: file.name,
+          type: 'file',
+          content,
+          language: getLanguageFromFile(file.name),
+          path: `/${file.name}`,
+          modified: false,
+          saved: true
+        }
+
+        setFiles(prev => {
+          const rootFolder = prev.find(f => f.id === 'root')
+          if (rootFolder && rootFolder.children) {
+            return prev.map(f => 
+              f.id === 'root' 
+                ? { ...f, children: [...f.children!, newFile] }
+                : f
+            )
+          }
+          return [...prev, newFile]
+        })
+      }
+      reader.readAsText(file)
+    })
+
+    event.target.value = ''
+  }
+
+  const exportProject = () => {
+    const projectData = {
+      name: 'MominOS Project Export',
+      timestamp: new Date().toISOString(),
+      files: files
+    }
+
+    const dataStr = JSON.stringify(projectData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(dataBlob)
+    link.download = `mominos-project-${Date.now()}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const renderFileTree = (items: FileItem[], level = 0) => {
     return items.map(file => {
       const Icon = getFileIcon(file)
@@ -367,12 +724,16 @@ body {
       return (
         <div key={file.id}>
           <motion.div
-            className={`flex items-center gap-2 p-2 hover:bg-white/10 cursor-pointer ${
+            className={`flex items-center gap-2 p-2 hover:bg-white/10 cursor-pointer group ${
               activeTab === file.id ? 'bg-white/20' : ''
             }`}
             style={{ paddingLeft: `${12 + level * 16}px` }}
             onClick={() => file.type === 'folder' ? toggleFolder(file.id) : openFile(file)}
             whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              // Context menu could be added here
+            }}
           >
             {file.type === 'folder' && (
               isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />
@@ -380,8 +741,46 @@ body {
             <Icon className={`w-4 h-4 ${
               file.type === 'folder' ? 'text-blue-400' : 'text-gray-400'
             }`} />
-            <span className="text-white text-sm">{file.name}</span>
+            <span className="text-white text-sm flex-1">{file.name}</span>
             {file.modified && <div className="w-2 h-2 bg-orange-400 rounded-full" />}
+            
+            {/* File actions */}
+            <div className="opacity-0 group-hover:opacity-100 flex gap-1">
+              {file.type === 'folder' && (
+                <>
+                  <motion.button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      createNewFile(file.id)
+                    }}
+                    className="text-gray-400 hover:text-white"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <FilePlus className="w-3 h-3" />
+                  </motion.button>
+                  <motion.button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      createNewFolder(file.id)
+                    }}
+                    className="text-gray-400 hover:text-white"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <FolderPlus className="w-3 h-3" />
+                  </motion.button>
+                </>
+              )}
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteFile(file.id)
+                }}
+                className="text-gray-400 hover:text-red-400"
+                whileHover={{ scale: 1.1 }}
+              >
+                <Trash2 className="w-3 h-3" />
+              </motion.button>
+            </div>
           </motion.div>
           {file.type === 'folder' && file.children && isExpanded && (
             <div>{renderFileTree(file.children, level + 1)}</div>
@@ -392,6 +791,33 @@ body {
   }
 
   const activeTabData = tabs.find(tab => tab.id === activeTab)
+
+  const updateCursorPosition = useCallback(() => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current
+      const text = textarea.value
+      const cursorPos = textarea.selectionStart
+      
+      const lines = text.substring(0, cursorPos).split('\n')
+      const line = lines.length
+      const column = lines[lines.length - 1].length + 1
+      
+      setCursorPosition({ line, column })
+    }
+  }, [])
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.addEventListener('keyup', updateCursorPosition)
+      textarea.addEventListener('click', updateCursorPosition)
+      
+      return () => {
+        textarea.removeEventListener('keyup', updateCursorPosition)
+        textarea.removeEventListener('click', updateCursorPosition)
+      }
+    }
+  }, [activeTab, updateCursorPosition])
 
   return (
     <div className="h-full bg-black/20 backdrop-blur-xl flex flex-col">
@@ -422,79 +848,145 @@ body {
             <motion.button
               onClick={saveFile}
               className="glass-button p-1"
+              disabled={!activeTab || !activeTabData?.modified}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
               <Save className="w-4 h-4 text-white" />
             </motion.button>
             <motion.button
+              onClick={saveAllFiles}
+              className="glass-button p-1 text-xs px-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Save All
+            </motion.button>
+            <motion.button
+              onClick={runCode}
+              disabled={!activeTab || isRunning}
               className="glass-button p-1"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
-              <Play className="w-4 h-4 text-green-400" />
+              {isRunning ? (
+                <Square className="w-4 h-4 text-red-400" />
+              ) : (
+                <Play className="w-4 h-4 text-green-400" />
+              )}
             </motion.button>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span>Lines: {activeTabData?.content.split('\n').length || 0}</span>
-          <span>Language: {activeTabData?.language || 'None'}</span>
-          <span>Encoding: UTF-8</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={() => fileInputRef.current?.click()}
+              className="glass-button p-1"
+              whileHover={{ scale: 1.1 }}
+            >
+              <Upload className="w-4 h-4 text-white" />
+            </motion.button>
+            <motion.button
+              onClick={exportProject}
+              className="glass-button p-1"
+              whileHover={{ scale: 1.1 }}
+            >
+              <Download className="w-4 h-4 text-white" />
+            </motion.button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>Lines: {activeTabData?.content.split('\n').length || 0}</span>
+            <span>Language: {activeTabData?.language || 'None'}</span>
+            <span>Encoding: UTF-8</span>
+          </div>
         </div>
       </div>
 
       {/* Search Bar */}
-      {showSearch && (
-        <motion.div
-          className="p-4 border-b border-white/10 glass-card"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="glass-input flex-1 text-white placeholder-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Replace..."
-              value={replaceQuery}
-              onChange={(e) => setReplaceQuery(e.target.value)}
-              className="glass-input flex-1 text-white placeholder-gray-400"
-            />
-            <motion.button
-              className="glass-button px-3 py-1"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Replace className="w-4 h-4 text-white" />
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            className="p-4 border-b border-white/10 glass-card"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="glass-input flex-1 text-white placeholder-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Replace..."
+                value={replaceQuery}
+                onChange={(e) => setReplaceQuery(e.target.value)}
+                className="glass-input flex-1 text-white placeholder-gray-400"
+              />
+              <motion.button
+                onClick={() => {
+                  if (activeTabData && searchQuery) {
+                    const newContent = activeTabData.content.replace(new RegExp(searchQuery, 'g'), replaceQuery)
+                    updateTabContent(activeTab!, newContent)
+                  }
+                }}
+                className="glass-button px-3 py-1"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Replace className="w-4 h-4 text-white" />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 flex">
         {/* Sidebar */}
         {!sidebarCollapsed && (
-          <div className="w-64 glass-card border-r border-white/10">
+          <div className="w-64 glass-card border-r border-white/10 flex flex-col">
             <div className="p-2 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <span className="text-white font-medium text-sm">Explorer</span>
-                <motion.button
-                  className="glass-button p-1 ml-auto"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Plus className="w-3 h-3 text-white" />
-                </motion.button>
+                <div className="flex gap-1 ml-auto">
+                  <motion.button
+                    onClick={() => createNewFile()}
+                    className="glass-button p-1"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <FilePlus className="w-3 h-3 text-white" />
+                  </motion.button>
+                  <motion.button
+                    onClick={() => createNewFolder()}
+                    className="glass-button p-1"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <FolderPlus className="w-3 h-3 text-white" />
+                  </motion.button>
+                </div>
               </div>
             </div>
-            <div className="overflow-auto">
-              {renderFileTree(files)}
+            <div className="flex-1 overflow-auto">
+              {files.length === 0 ? (
+                <div className="p-4 text-center text-gray-400">
+                  <Folder className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No files yet</p>
+                  <motion.button
+                    onClick={() => createNewFile()}
+                    className="glass-button text-xs px-2 py-1 mt-2"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    Create File
+                  </motion.button>
+                </div>
+              ) : (
+                renderFileTree(files)
+              )}
             </div>
           </div>
         )}
@@ -531,14 +1023,14 @@ body {
           )}
 
           {/* Editor Content */}
-          <div className="flex-1 relative">
+          <div className="flex-1 flex flex-col">
             {activeTabData ? (
-              <div className="h-full flex">
+              <div className="flex-1 flex">
                 {/* Line Numbers */}
                 {showLineNumbers && (
                   <div className="w-12 bg-black/30 border-r border-white/10 p-2 text-right text-gray-500 text-sm font-mono overflow-hidden">
                     {activeTabData.content.split('\n').map((_, i) => (
-                      <div key={i} className="leading-6">{i + 1}</div>
+                      <div key={i} className="leading-6 hover:bg-white/10 px-1">{i + 1}</div>
                     ))}
                   </div>
                 )}
@@ -563,10 +1055,61 @@ body {
                 <div className="text-center text-gray-400">
                   <Code className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg">No file selected</p>
-                  <p className="text-sm">Open a file from the explorer to start coding</p>
+                  <p className="text-sm mb-4">Open a file from the explorer to start coding</p>
+                  <motion.button
+                    onClick={() => createNewFile()}
+                    className="glass-button px-4 py-2"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    Create New File
+                  </motion.button>
                 </div>
               </div>
             )}
+            
+            {/* Output Panel */}
+            <AnimatePresence>
+              {showOutput && (
+                <motion.div
+                  className="h-48 border-t border-white/10 bg-black/40"
+                  initial={{ height: 0 }}
+                  animate={{ height: 192 }}
+                  exit={{ height: 0 }}
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-white/10">
+                    <span className="text-white text-sm font-medium">Output</span>
+                    <div className="flex gap-2">
+                      <motion.button
+                        onClick={() => setOutput([])}
+                        className="text-gray-400 hover:text-white text-sm"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        Clear
+                      </motion.button>
+                      <motion.button
+                        onClick={() => setShowOutput(false)}
+                        className="text-gray-400 hover:text-white"
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <X className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </div>
+                  <div className="p-2 h-full overflow-auto font-mono text-sm text-gray-300">
+                    {output.map((line, i) => (
+                      <div key={i} className="mb-1 whitespace-pre-wrap">
+                        {line}
+                      </div>
+                    ))}
+                    {output.length === 0 && (
+                      <div className="text-gray-500 text-center mt-8">
+                        Output will appear here when you run your code
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -580,9 +1123,12 @@ body {
           </div>
           {activeTabData && (
             <>
-              <span>Ln 1, Col 1</span>
+              <span>Ln {cursorPosition.line}, Col {cursorPosition.column}</span>
               <span>{activeTabData.language}</span>
               <span>Spaces: 2</span>
+              <span className={activeTabData.modified ? 'text-orange-400' : 'text-green-400'}>
+                {activeTabData.modified ? 'Modified' : 'Saved'}
+              </span>
             </>
           )}
         </div>
@@ -618,6 +1164,16 @@ body {
           </motion.button>
         </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".js,.ts,.tsx,.jsx,.css,.html,.json,.md,.txt,.py,.java,.cpp,.c"
+        onChange={handleFileImport}
+        className="hidden"
+      />
     </div>
   )
 }
