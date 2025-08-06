@@ -55,7 +55,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     {
       id: '1',
       type: 'assistant',
-      content: "Hello! I'm Momin, your next-generation AI assistant with advanced natural language understanding. I don't just respond to commands - I understand context, learn from our conversations, and anticipate your needs.\n\n✨ Try speaking naturally to me:\n• \"I need to do some math\"\n• \"Show me my schedule\"\n• \"Find information about AI\"\n• \"Open something for coding\"\n\nI'm designed to understand you like a human would. What would you like to accomplish?",
+      content: "Hello! I'm Sierra, your intelligent AI assistant powered by advanced language understanding. I can help you navigate MominOS efficiently and understand your requests naturally.\n\n✨ Try speaking naturally to me:\n• \"I need to do some math\"\n• \"Show me my schedule\"\n• \"Find information about AI\"\n• \"Open something for coding\"\n\nI'm designed to understand context and provide helpful assistance. What would you like to accomplish?",
       timestamp: new Date(),
     }
   ])
@@ -83,6 +83,54 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     }
   }, [isOpen, isMinimized])
 
+  const extractActionsFromIntent = (intent: string, entities: string[], normalizedInput: string): Action[] => {
+    const actions: Action[] = []
+
+    // App opening actions
+    if (intent === 'open_app' || normalizedInput.match(/\b(open|launch|start|run|show me|go to|access)\b/)) {
+      if (entities.some(e => ['calculator', 'calc'].includes(e)) || normalizedInput.match(/\b(math|calculate|compute|numbers)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Calculator', value: 'calculator', icon: Calculator })
+      }
+      if (entities.some(e => ['browser', 'chrome', 'web'].includes(e)) || normalizedInput.match(/\b(internet|surf|browse|web)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe })
+      }
+      if (entities.some(e => ['calendar'].includes(e)) || normalizedInput.match(/\b(schedule|appointment|meeting|event|date)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Calendar', value: 'calendar', icon: Calendar })
+      }
+      if (entities.some(e => ['mail', 'email'].includes(e)) || normalizedInput.match(/\b(message|inbox|compose|send)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Mail', value: 'mail', icon: Mail })
+      }
+      if (entities.some(e => ['music', 'audio'].includes(e)) || normalizedInput.match(/\b(song|track|playlist|listen|sound)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Music', value: 'music', icon: Music })
+      }
+      if (entities.some(e => ['terminal', 'console'].includes(e)) || normalizedInput.match(/\b(command|cmd|bash|shell|cli)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Terminal', value: 'terminal', icon: Terminal })
+      }
+      if (entities.some(e => ['code', 'editor'].includes(e)) || normalizedInput.match(/\b(programming|develop|script|coding|ide)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Code', value: 'code', icon: Code })
+      }
+      if (entities.some(e => ['photos', 'images'].includes(e)) || normalizedInput.match(/\b(picture|gallery|photo|image|visual)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Photos', value: 'photos', icon: Camera })
+      }
+      if (entities.some(e => ['files', 'explorer'].includes(e)) || normalizedInput.match(/\b(folder|directory|document|file|explore)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Files', value: 'files', icon: FileText })
+      }
+      if (entities.some(e => ['settings', 'preferences'].includes(e)) || normalizedInput.match(/\b(configure|customize|setup|options|control)\b/)) {
+        actions.push({ type: 'open_app', label: 'Open Settings', value: 'settings', icon: Settings })
+      }
+    }
+
+    // Search actions
+    if (intent === 'search' || normalizedInput.match(/\b(search|find|look for|google|query)\b/)) {
+      const searchTerm = normalizedInput.replace(/(search|google|find|look for|query)\s+(for\s+)?/gi, '').trim()
+      if (searchTerm) {
+        actions.push({ type: 'open_url', label: `Search: ${searchTerm}`, value: `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, icon: Search })
+      }
+    }
+
+    return actions
+  }
+
   const processUserInput = async (input: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -98,7 +146,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     // Simulate AI processing delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
 
-    const response = generateAIResponse(input.toLowerCase())
+    const response = await generateAIResponse(input.toLowerCase())
     
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
@@ -187,9 +235,25 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     return responseList[Math.floor(Math.random() * responseList.length)]
   }
 
-  const generateAIResponse = (input: string): { content: string; actions?: Action[] } => {
+  const generateAIResponse = async (input: string): Promise<{ content: string; actions?: Action[] }> => {
     const { intent, entities, confidence } = extractIntent(input)
     const normalizedInput = input.toLowerCase()
+
+    // Try Gemini API first, with fallback to local processing
+    try {
+      const geminiResponse = await import('@/app/lib/gemini').then(m => m.geminiService.generateResponse(input))
+      
+      // If Gemini provides a good response, use it but still add actions based on intent
+      if (geminiResponse && !geminiResponse.includes('offline mode')) {
+        const actions = extractActionsFromIntent(intent, entities, normalizedInput)
+        return {
+          content: geminiResponse,
+          actions
+        }
+      }
+    } catch (error) {
+      console.warn('Falling back to local AI processing:', error)
+    }
 
     // Enhanced app opening with natural language understanding
     if (intent === 'open_app' || normalizedInput.match(/\b(open|launch|start|run|show me|go to|access)\b/)) {
@@ -445,7 +509,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
               </motion.div>
               {!isMinimized && (
                 <div>
-                  <h3 className="text-white font-semibold text-sm">Momin AI</h3>
+                  <h3 className="text-white font-semibold text-sm">Sierra AI</h3>
                   <p className="text-gray-300 text-xs">
                     {isTyping ? 'Thinking...' : isListening ? 'Listening...' : 'Ready to assist'}
                   </p>
