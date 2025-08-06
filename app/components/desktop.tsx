@@ -13,8 +13,8 @@ import CodeApp from "./apps/CodeApp"
 import PhotosApp from "./apps/PhotosApp"
 import MailApp from "./apps/EmailApp"
 import AIAssistant from "./ai-assistant"
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion"
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react"
+import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion } from "framer-motion"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -2173,7 +2173,7 @@ function WindowPreview({
   )
 }
 
-function DesktopIcon({
+const DesktopIcon = memo(function DesktopIcon({
   icon: Icon,
   label,
   onClick,
@@ -2186,32 +2186,45 @@ function DesktopIcon({
   adaptiveGlow: string
   className?: string
 }) {
+  const shouldReduceMotion = useReducedMotion()
+  
+  const animationProps = useMemo(() => {
+    if (shouldReduceMotion) {
+      return {
+        whileHover: {},
+        whileTap: {},
+        transition: { duration: 0 }
+      }
+    }
+    return {
+      whileHover: { scale: 1.05, y: -2 },
+      whileTap: { scale: 0.95 },
+      transition: springConfig
+    }
+  }, [shouldReduceMotion])
+
   return (
     <motion.button
       onClick={onClick}
       className={`flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/10 group ${className}`}
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.95 }}
-      transition={springConfig}
+      {...animationProps}
     >
       <motion.div
         className="glass-icon w-12 h-12 flex items-center justify-center"
-        whileHover={{
-          scale: 1.1,
-        }}
-        transition={springConfig}
+        whileHover={shouldReduceMotion ? {} : { scale: 1.1 }}
+        transition={shouldReduceMotion ? { duration: 0 } : springConfig}
       >
         <Icon className="w-6 h-6 text-white/80 group-hover:text-white" />
       </motion.div>
       <motion.span
         className="text-white text-xs font-medium drop-shadow-lg group-hover:text-purple-200"
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.2 }}
+        whileHover={shouldReduceMotion ? {} : { scale: 1.05 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
       >
         {label}
       </motion.span>
     </motion.button>
   )
-}
+})
 
 // Placeholder app components (keeping them simple for now)
