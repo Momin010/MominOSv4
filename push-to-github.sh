@@ -19,8 +19,8 @@ git commit -m "Enhanced AI Assistant with advanced NLP capabilities - $TIMESTAMP
 - Fixed CSS compilation errors
 - Ready for investor demonstration"
 
-# Push to main branch
-git push origin main
+# Push to master branch
+git push origin master
 
 echo "✅ Successfully pushed to GitHub!"
 echo "🎯 Your AI-powered OS is now ready to impress investors!"
