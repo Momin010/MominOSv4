@@ -7,7 +7,7 @@ import {
   Search, Download, Star, TrendingUp, Filter, Grid3X3, 
   List, Heart, Settings, User, ShoppingCart, Play,
   Image, Music, Code, Gamepad2, BookOpen, Calculator,
-  Camera, Mail, Calendar, Terminal, FileText, Palette
+  Camera, Mail, Calendar, Terminal, FileText, Palette, Globe
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
