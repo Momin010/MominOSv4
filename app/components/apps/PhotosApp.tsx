@@ -40,8 +40,7 @@ import {
   Sun,
   Contrast,
   Zap,
-  Brightness,
-  Saturation
+  
 } from "lucide-react"
 
 interface Photo {
