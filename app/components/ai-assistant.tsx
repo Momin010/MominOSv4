@@ -201,13 +201,6 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       entities,
       confidence: bestMatch.confidence
     }
-      }
-    }
-
-    // Extract entities (app names, search terms, etc.)
-    const entities = extractEntities(normalizedInput)
-    
-    return { ...bestMatch, entities }
   }
 
   const extractEntities = (input: string): string[] => {
