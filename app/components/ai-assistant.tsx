@@ -257,7 +257,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
         }
       }
     } catch (error) {
-      console.warn('Falling back to local AI processing:', error)ror)
+      console.warn('Falling back to local AI processing:', error)
     }
 
     // Enhanced app opening with natural language understanding
