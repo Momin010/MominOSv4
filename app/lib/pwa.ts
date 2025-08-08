@@ -1,3 +1,4 @@
+import React from 'react'
 
 // PWA utilities for MominOS
 export class PWAManager {
