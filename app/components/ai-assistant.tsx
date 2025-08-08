@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -65,7 +64,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -147,7 +146,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
 
     const response = await generateAIResponse(input.toLowerCase())
-    
+
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
       type: 'assistant',
@@ -168,7 +167,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
   // Enhanced natural language processing functions
   const extractIntent = (input: string): { intent: string; entities: string[]; confidence: number } => {
     const normalizedInput = input.toLowerCase().trim()
-    
+
     // Intent patterns with confidence scoring
     const intentPatterns = [
       { intent: 'open_app', patterns: ['open', 'launch', 'start', 'run', 'show me', 'go to', 'access'], confidence: 0.9 },
@@ -207,16 +206,16 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     const appEntities = ['calculator', 'calc', 'browser', 'chrome', 'web', 'calendar', 'mail', 'email', 
                         'music', 'audio', 'terminal', 'console', 'code', 'editor', 'photos', 'images', 
                         'files', 'explorer', 'settings', 'preferences']
-    
+
     const webEntities = ['youtube', 'github', 'google', 'facebook', 'twitter', 'instagram', 'netflix']
-    
+
     const entities = []
     for (const entity of [...appEntities, ...webEntities]) {
       if (input.includes(entity)) {
         entities.push(entity)
       }
     }
-    
+
     return entities
   }
 
@@ -248,7 +247,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
     // Try Gemini API first, with fallback to local processing
     try {
       const geminiResponse = await import('@/app/lib/gemini').then(m => m.geminiService.generateResponse(input))
-      
+
       // If Gemini provides a good response, use it but still add actions based on intent
       if (geminiResponse && !geminiResponse.includes('offline mode')) {
         const actions = extractActionsFromIntent(intent, entities, normalizedInput)
@@ -270,7 +269,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Calculator', value: 'calculator', icon: Calculator }]
         }
       }
-      
+
       // Browser variations
       if (entities.some(e => ['browser', 'chrome', 'web'].includes(e)) || normalizedInput.match(/\b(internet|surf|browse|web)\b/)) {
         return {
@@ -278,7 +277,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Browser', value: 'browser', icon: Globe }]
         }
       }
-      
+
       // Calendar variations
       if (entities.some(e => ['calendar'].includes(e)) || normalizedInput.match(/\b(schedule|appointment|meeting|event|date)\b/)) {
         return {
@@ -286,7 +285,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Calendar', value: 'calendar', icon: Calendar }]
         }
       }
-      
+
       // Email variations
       if (entities.some(e => ['mail', 'email'].includes(e)) || normalizedInput.match(/\b(message|inbox|compose|send)\b/)) {
         return {
@@ -294,7 +293,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Mail', value: 'mail', icon: Mail }]
         }
       }
-      
+
       // Music variations
       if (entities.some(e => ['music', 'audio'].includes(e)) || normalizedInput.match(/\b(song|track|playlist|listen|sound)\b/)) {
         return {
@@ -302,7 +301,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Music', value: 'music', icon: Music }]
         }
       }
-      
+
       // Terminal variations
       if (entities.some(e => ['terminal', 'console'].includes(e)) || normalizedInput.match(/\b(command|cmd|bash|shell|cli)\b/)) {
         return {
@@ -310,7 +309,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Terminal', value: 'terminal', icon: Terminal }]
         }
       }
-      
+
       // Code editor variations
       if (entities.some(e => ['code', 'editor'].includes(e)) || normalizedInput.match(/\b(programming|develop|script|coding|ide)\b/)) {
         return {
@@ -318,7 +317,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Code', value: 'code', icon: Code }]
         }
       }
-      
+
       // Photos variations
       if (entities.some(e => ['photos', 'images'].includes(e)) || normalizedInput.match(/\b(picture|gallery|photo|image|visual)\b/)) {
         return {
@@ -326,7 +325,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Photos', value: 'photos', icon: Camera }]
         }
       }
-      
+
       // Files variations
       if (entities.some(e => ['files', 'explorer'].includes(e)) || normalizedInput.match(/\b(folder|directory|document|file|explore)\b/)) {
         return {
@@ -334,7 +333,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
           actions: [{ type: 'open_app', label: 'Open Files', value: 'files', icon: FileText }]
         }
       }
-      
+
       // Settings variations
       if (entities.some(e => ['settings', 'preferences'].includes(e)) || normalizedInput.match(/\b(configure|customize|setup|options|control)\b/)) {
         return {
@@ -379,7 +378,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       const timeString = now.toLocaleTimeString()
       const dateString = now.toLocaleDateString()
       const dayName = now.toLocaleDateString('en-US', { weekday: 'long' })
-      
+
       return {
         content: `Right now it's ${timeString} on ${dayName}, ${dateString}. Hope you're having a productive day!`
       }
@@ -522,7 +521,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
                 </div>
               )}
             </div>
-            
+
             {!isMinimized && (
               <div className="flex items-center gap-1">
                 <motion.button
@@ -561,7 +560,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
                 </motion.button>
               </div>
             )}
-            
+
             {isMinimized && (
               <motion.button
                 onClick={() => setIsMinimized(false)}
@@ -601,7 +600,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
                           {message.timestamp.toLocaleTimeString()}
                         </p>
                       </motion.div>
-                      
+
                       {message.actions && (
                         <motion.div 
                           className="mt-2 space-y-1"
@@ -629,7 +628,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
                     </div>
                   </motion.div>
                 ))}
-                
+
                 {isTyping && (
                   <motion.div
                     className="flex justify-start"
@@ -657,7 +656,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
                     </div>
                   </motion.div>
                 )}
-                
+
                 <div ref={messagesEndRef} />
               </div>
 
