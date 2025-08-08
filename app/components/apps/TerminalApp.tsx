@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -5,13 +6,7 @@ import { motion } from "framer-motion"
 import { 
   Terminal, 
   X, 
-  Copy, 
-  Maximize2, 
-  Minimize2,
-  Settings,
-  Folder,
-  History,
-  Search
+  Copy
 } from "lucide-react"
 import { StorageManager } from "@/app/lib/storage"
 
@@ -47,8 +42,7 @@ export default function TerminalApp() {
       timestamp: new Date()
     }
   ])
-  const [theme, setTheme] = useState('dark')
-  const [fontSize, setFontSize] = useState(14)
+  const [fontSize] = useState(14)
   const inputRef = useRef<HTMLInputElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -77,14 +71,6 @@ ${Object.entries(commands).map(([name, cmd]) => `${name.padEnd(15)} - ${cmd.desc
         return "";
       }
     },
-    ls: {
-      command: "ls",
-      description: "List directory contents",
-      execute: () => `Documents/    Pictures/     Music/        Videos/
-Downloads/    Desktop/      Public/       Templates/
-report.pdf    photo.jpg     song.mp3      video.mp4
-script.js     README.md     package.json  .gitignore`
-    },
     pwd: {
       command: "pwd",
       description: "Print working directory",
@@ -93,18 +79,22 @@ script.js     README.md     package.json  .gitignore`
     cd: {
       command: "cd",
       description: "Change directory",
-      execute: (args: string[]) => {
-        const newPath = args[0] || '~';
-        if (newPath === '..') {
-          const pathParts = currentPath.split('/').filter(p => p);
-          pathParts.pop();
-          setCurrentPath(pathParts.length ? '/' + pathParts.join('/') : '~');
-        } else if (newPath === '~' || newPath === '/') {
-          setCurrentPath('~');
-        } else {
-          setCurrentPath(newPath.startsWith('/') ? newPath : `${currentPath}/${newPath}`);
-        }
-        return '';
+      execute: async (args: string[]) => {
+        const targetDir = args[0] ?? "~";
+        const newPath = await storage.changeDirectory(currentPath, targetDir, environmentVars.HOME || "/home/user");
+        if (newPath === null) return `cd: ${targetDir}: No such file or directory`;
+        setCurrentPath(newPath);
+        return "";
+      }
+    },
+    ls: {
+      command: "ls",
+      description: "List directory contents",
+      execute: async (args: string[]) => {
+        const dirToList = args[0] ?? ".";
+        const items = await storage.listDirectory(currentPath, dirToList);
+        if (items === null) return `ls: cannot access '${dirToList}': No such file or directory`;
+        return items.map((item: {name: string, type: 'file' | 'directory'}) => `${item.name}${item.type === 'directory' ? '/' : ''}`).join("\n");
       }
     },
     date: {
@@ -134,35 +124,73 @@ script.js     README.md     package.json  .gitignore`
     },
     mkdir: {
       command: "mkdir",
-      description: "Create directory",
-      execute: (args: string[]) => {
-        if (args[0]) {
-          return `Directory '${args[0]}' created`;
-        } else {
-          return 'mkdir: missing directory name';
-        }
+      description: "Create a new directory",
+      execute: async (args: string[]) => {
+        if (!args[0]) return "mkdir: missing operand";
+        await storage.createDirectory(currentPath, args[0]);
+        return `Directory '${args[0]}' created`;
       }
     },
     touch: {
       command: "touch",
-      description: "Create file",
-      execute: (args: string[]) => {
-        if (args[0]) {
-          return `File '${args[0]}' created`;
-        } else {
-          return 'touch: missing file name';
-        }
+      description: "Create a new file",
+      execute: async (args: string[]) => {
+        if (!args[0]) return "touch: missing file name";
+        await storage.createFile(currentPath, args[0], "");
+        return `File '${args[0]}' created`;
       }
     },
     cat: {
       command: "cat",
-      description: "Display file contents",
-      execute: (args: string[]) => {
-        if (args[0]) {
-          return `Contents of ${args[0]}:\nThis is a sample file content.\nLorem ipsum dolor sit amet...`;
+      description: "Display file content",
+      execute: async (args: string[]) => {
+        if (!args[0]) return "cat: missing file name";
+        const content = await storage.readFile(currentPath, args[0]);
+        return content !== null ? content : `cat: ${args[0]}: No such file or directory`;
+      }
+    },
+    rm: {
+      command: "rm",
+      description: "Remove files or directories",
+      execute: async (args: string[]) => {
+        if (!args[0]) return "rm: missing operand";
+        const itemType = await storage.getItemType(currentPath, args[0]);
+        if (itemType === "file") {
+          await storage.deleteFile(currentPath, args[0]);
+          return `File '${args[0]}' removed`;
+        } else if (itemType === "directory") {
+          await storage.deleteDirectory(currentPath, args[0]);
+          return `Directory '${args[0]}' removed`;
         } else {
-          return 'cat: missing file name';
+          return `rm: cannot remove '${args[0]}': No such file or directory`;
         }
+      }
+    },
+    cp: {
+      command: "cp",
+      description: "Copy files",
+      execute: async (args: string[]) => {
+        if (args.length < 2) return "cp: missing file operand";
+        const source = args[0];
+        const destination = args[1];
+        const content = await storage.readFile(currentPath, source);
+        if (content === null) return `cp: cannot stat '${source}': No such file or directory`;
+        await storage.createFile(currentPath, destination, content);
+        return ``;
+      }
+    },
+    mv: {
+      command: "mv",
+      description: "Move files",
+      execute: async (args: string[]) => {
+        if (args.length < 2) return "mv: missing file operand";
+        const source = args[0];
+        const destination = args[1];
+        const content = await storage.readFile(currentPath, source);
+        if (content === null) return `mv: cannot stat '${source}': No such file or directory`;
+        await storage.deleteFile(currentPath, source);
+        await storage.createFile(currentPath, destination, content);
+        return ``;
       }
     },
     ps: {
@@ -198,7 +226,6 @@ Memory: 8192MB total, 4096MB used, 4096MB free`
       command: "curl",
       description: "Make HTTP requests",
       execute: (args: string[]) => {
-        const url = args[0] || 'https://httpbin.org/json';
         return `{
   "slideshow": {
     "author": "MominOS",
@@ -297,98 +324,6 @@ Type ".help" for more information.
 Hello from Node.js in MominOS!
 undefined
 > process.exit()`
-    },
-    mkdir: {
-      command: "mkdir",
-      description: "Create a new directory",
-      execute: async (args: string[]) => {
-        if (!args[0]) return "mkdir: missing operand";
-        await storage.createDirectory(currentPath, args[0]);
-        return `Directory '${args[0]}' created`;
-      }
-    },
-    touch: {
-      command: "touch",
-      description: "Create a new file",
-      execute: async (args: string[]) => {
-        if (!args[0]) return "touch: missing file name";
-        await storage.createFile(currentPath, args[0], "");
-        return `File '${args[0]}' created`;
-      }
-    },
-    cat: {
-      command: "cat",
-      description: "Display file content",
-      execute: async (args: string[]) => {
-        if (!args[0]) return "cat: missing file name";
-        const content = await storage.readFile(currentPath, args[0]);
-        return content !== null ? content : `cat: ${args[0]}: No such file or directory`;
-      }
-    },
-    rm: {
-      command: "rm",
-      description: "Remove files or directories",
-      execute: async (args: string[]) => {
-        if (!args[0]) return "rm: missing operand";
-        const itemType = await storage.getItemType(currentPath, args[0]);
-        if (itemType === "file") {
-          await storage.deleteFile(currentPath, args[0]);
-          return `File '${args[0]}' removed`;
-        } else if (itemType === "directory") {
-          await storage.deleteDirectory(currentPath, args[0]);
-          return `Directory '${args[0]}' removed`;
-        } else {
-          return `rm: cannot remove '${args[0]}': No such file or directory`;
-        }
-      }
-    },
-    cp: {
-      command: "cp",
-      description: "Copy files",
-      execute: async (args: string[]) => {
-        if (args.length < 2) return "cp: missing file operand";
-        const source = args[0];
-        const destination = args[1];
-        const content = await storage.readFile(currentPath, source);
-        if (content === null) return `cp: cannot stat '${source}': No such file or directory`;
-        await storage.createFile(currentPath, destination, content);
-        return ``;
-      }
-    },
-    mv: {
-      command: "mv",
-      description: "Move files",
-      execute: async (args: string[]) => {
-        if (args.length < 2) return "mv: missing file operand";
-        const source = args[0];
-        const destination = args[1];
-        const content = await storage.readFile(currentPath, source);
-        if (content === null) return `mv: cannot stat '${source}': No such file or directory`;
-        await storage.deleteFile(currentPath, source);
-        await storage.createFile(currentPath, destination, content);
-        return ``;
-      }
-    },
-    cd: {
-      command: "cd",
-      description: "Change directory",
-      execute: async (args: string[]) => {
-        const targetDir = args[0] ?? "~";
-        const newPath = await storage.changeDirectory(currentPath, targetDir, environmentVars.HOME || "/home/user");
-        if (newPath === null) return `cd: ${targetDir}: No such file or directory`;
-        setCurrentPath(newPath);
-        return "";
-      }
-    },
-    ls: {
-      command: "ls",
-      description: "List directory contents",
-      execute: async (args: string[]) => {
-        const dirToList = args[0] ?? ".";
-        const items = await storage.listDirectory(currentPath, dirToList);
-        if (items === null) return `ls: cannot access '${dirToList}': No such file or directory`;
-        return items.map(item => `${item.name}${item.type === 'directory' ? '/' : ''}`).join("\n");
-      }
     },
     get: {
       command: "get",

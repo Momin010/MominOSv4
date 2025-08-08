@@ -223,4 +223,75 @@ export class StorageManager {
       language: 'en'
     }
   }
+
+  // File system operations for terminal
+  async createDirectory(currentPath: string, dirName: string): Promise<void> {
+    const files = this.loadFileSystem()
+    const newDir: FileSystemItem = {
+      id: Date.now().toString(),
+      name: dirName,
+      type: 'folder',
+      modified: new Date(),
+      children: []
+    }
+    files.push(newDir)
+    this.saveFileSystem(files)
+  }
+
+  async createFile(currentPath: string, fileName: string, content: string): Promise<void> {
+    const files = this.loadFileSystem()
+    const newFile: FileSystemItem = {
+      id: Date.now().toString(),
+      name: fileName,
+      type: 'file',
+      modified: new Date(),
+      content: content,
+      size: content.length
+    }
+    files.push(newFile)
+    this.saveFileSystem(files)
+  }
+
+  async readFile(currentPath: string, fileName: string): Promise<string | null> {
+    const files = this.loadFileSystem()
+    const file = files.find(f => f.name === fileName && f.type === 'file')
+    return file?.content || null
+  }
+
+  async deleteFile(currentPath: string, fileName: string): Promise<void> {
+    const files = this.loadFileSystem()
+    const filteredFiles = files.filter(f => f.name !== fileName || f.type !== 'file')
+    this.saveFileSystem(filteredFiles)
+  }
+
+  async deleteDirectory(currentPath: string, dirName: string): Promise<void> {
+    const files = this.loadFileSystem()
+    const filteredFiles = files.filter(f => f.name !== dirName || f.type !== 'folder')
+    this.saveFileSystem(filteredFiles)
+  }
+
+  async getItemType(currentPath: string, itemName: string): Promise<'file' | 'directory' | null> {
+    const files = this.loadFileSystem()
+    const item = files.find(f => f.name === itemName)
+    if (!item) return null
+    return item.type === 'file' ? 'file' : 'directory'
+  }
+
+  async changeDirectory(currentPath: string, targetDir: string, homeDir: string): Promise<string | null> {
+    if (targetDir === '~') return '~'
+    if (targetDir === '..') {
+      const pathParts = currentPath.split('/').filter(p => p)
+      pathParts.pop()
+      return pathParts.length ? '/' + pathParts.join('/') : '~'
+    }
+    return targetDir.startsWith('/') ? targetDir : `${currentPath}/${targetDir}`
+  }
+
+  async listDirectory(currentPath: string, dirPath: string): Promise<{name: string, type: 'file' | 'directory'}[] | null> {
+    const files = this.loadFileSystem()
+    return files.map(file => ({
+      name: file.name,
+      type: file.type === 'file' ? 'file' : 'directory'
+    }))
+  }
 }
