@@ -11,6 +11,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  
+  // Fix cross-origin warnings in development
+  allowedDevOrigins: process.env.NODE_ENV === 'development' ? ['*.replit.dev'] : [],
 
   assetPrefix: process.env.NODE_ENV === 'production' ? '/' : '',
   // Add security headers

@@ -191,6 +191,19 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
       }
     }
 
+    // Extract entities (simple word matching)
+    const entities = normalizedInput.split(' ').filter(word => 
+      word.length > 3 && !['open', 'launch', 'start', 'show', 'find', 'search'].includes(word)
+    )
+
+    return {
+      intent: bestMatch.intent,
+      entities,
+      confidence: bestMatch.confidence
+    }
+      }
+    }
+
     // Extract entities (app names, search terms, etc.)
     const entities = extractEntities(normalizedInput)
     
@@ -252,7 +265,7 @@ export default function AIAssistant({ isOpen, onClose, onOpenApp, position }: AI
         }
       }
     } catch (error) {
-      console.warn('Falling back to local AI processing:', error)
+      console.warn('Falling back to local AI processing:', error)ror)
     }
 
     // Enhanced app opening with natural language understanding
