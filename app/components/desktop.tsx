@@ -154,7 +154,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
   const [showBatteryMenu, setShowBatteryMenu] = useState(false)
   const [notifications, setNotifications] = useState(mockNotifications)
   const [unreadNotifications, setUnreadNotifications] = useState(mockNotifications.filter((n) => !n.read).length)
-  
+
   // AI Assistant state
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [aiAssistantPosition, setAiAssistantPosition] = useState({ x: 100, y: 100 })
@@ -213,7 +213,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
     const handleDoubleClick = (e: MouseEvent) => {
       // Only trigger on desktop double-click (not on windows or dock)
       if ((e.target as HTMLElement).closest('.glass-window, .glass-dock, .glass-topbar')) return
-      
+
       setAiAssistantPosition({ 
         x: e.clientX - 200, 
         y: e.clientY - 250 
@@ -223,7 +223,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('dblclick', handleDoubleClick)
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('dblclick', handleDoubleClick)
@@ -765,7 +765,7 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.2 }}
       />
-      
+
       {/* Tropical Light Reflections */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-cyan-300/10 via-transparent to-blue-300/5"
@@ -1411,14 +1411,14 @@ export default function Desktop({ user, onLogout }: DesktopProps) {
               <p className="text-white/90 text-sm mb-2">
                 <span className="font-semibold">Double-click</span> anywhere or press <span className="font-mono bg-white/20 px-2 py-1 rounded">Ctrl+Space</span>
               </p>
-              <p className="text-cyan-400 text-xs font-medium flex items-center justify-center gap-1">
-                <motion.div
-                  className="w-1.5 h-1.5 bg-cyan-400 rounded-full"
-                  animate={{ scale: [1, 1.5, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                />
-                to summon your AI assistant
-              </p>
+              <div className="text-cyan-400 text-xs font-medium flex items-center justify-center gap-1">
+                  <motion.div
+                    className="w-1.5 h-1.5 bg-cyan-400 rounded-full"
+                    animate={{ scale: [1, 1.5, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  />
+                  to summon your AI assistant
+                </div>
             </motion.div>
           </motion.div>
         )}
@@ -2187,7 +2187,7 @@ const DesktopIcon = memo(function DesktopIcon({
   className?: string
 }) {
   const shouldReduceMotion = useReducedMotion()
-  
+
   const animationProps = useMemo(() => {
     if (shouldReduceMotion) {
       return {
